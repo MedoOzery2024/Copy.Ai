@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Copy.Ai</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <div class="logo">
+      <div class="logo-circle">C</div>
+      <h1>Copy.Ai</h1>
+    </div>
+  </header>
+
+  <main>
+    <section class="upload-section">
+      <h2>ارفع ملف PDF أو التقط صورة</h2>
+      <input type="file" id="fileInput" accept=".pdf,image/*">
+      <button id="cameraBtn">📷 فتح الكاميرا</button>
+    </section>
+
+    <section class="options-section">
+      <label for="langSelect">اختر اللغة:</label>
+      <select id="langSelect">
+        <option value="eng">English</option>
+        <option value="ara">العربية</option>
+        <option value="fra">Français</option>
+        <option value="spa">Español</option>
+        <option value="deu">Deutsch</option>
+      </select>
+
+      <label for="summaryLength">عدد جمل الملخص:</label>
+      <input type="number" id="summaryLength" value="3" min="1" max="10">
+      <button id="summarizeBtn">📑 تلخيص</button>
+    </section>
+
+    <section class="output-section">
+      <h2>الملخص</h2>
+      <textarea id="summaryOutput" readonly></textarea>
+      <button id="downloadBtn">⬇️ تحميل الملخص</button>
+    </section>
+
+    <section class="status-section">
+      <h2>السجل</h2>
+      <ul id="statusLog"></ul>
+    </section>
+  </main>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
