@@ -3,14 +3,16 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Copy.Ai — ملخص المستندات</title>
+  <title>Copy.Ai — كاميرا وملخصات</title>
   <link rel="stylesheet" href="style.css">
 
-  <!-- PDF.js + worker -->
+  <!-- pdf.js + worker -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
-  <script> if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js'; </script>
+  <script>
+    if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js';
+  </script>
 
-  <!-- Tesseract -->
+  <!-- Tesseract.js -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
   <!-- FileSaver -->
@@ -22,7 +24,6 @@
       <div class="logo">📘</div>
       <div class="title">Copy.Ai</div>
     </div>
-
     <div class="top-actions">
       <button id="themeToggle" title="تبديل الوضع">🌙</button>
       <button id="historyBtn" title="السجل">📚</button>
@@ -41,8 +42,12 @@
 
       <div class="card">
         <h3>2) الكاميرا (اختيار)</h3>
-        <button id="openCameraBtn">📷 افتح الكاميرا</button>
-        <div class="small">عند الضغط سيظهر خيار اختيار الكاميرا: أمامية / خلفية.</div>
+        <div class="camera-controls-row">
+          <button id="openCameraBtn">🔍 اختيار الكاميرا</button>
+          <button id="startCameraBtn">▶️ تشغيل الكاميرا</button>
+          <button id="stopCameraBtn">⏹️ إيقاف الكاميرا</button>
+        </div>
+        <div class="small">اضغط على "اختيار الكاميرا" لاختيار أمامية/خلفية، ثم اضغط تشغيل.</div>
       </div>
 
       <div class="card">
@@ -66,7 +71,7 @@
           <input id="useAi" type="checkbox" /> استخدم ملخّص الذكاء الاصطناعي (OpenAI)
         </label>
 
-        <label id="apiKeyLabel" class="hidden">OpenAI API Key (sk-...):
+        <label id="apiKeyLabel" class="hidden">OpenAI API Key:
           <input id="openaiKey" type="password" placeholder="ضع مفتاح OpenAI هنا (اختياري)" />
         </label>
 
@@ -79,8 +84,8 @@
       <div class="card small muted">
         <strong>ملاحظات تشغيل:</strong>
         <ul>
-          <li>التقاط الكاميرا يعمل على HTTPS أو localhost.</li>
-          <li>لـ OpenAI: وضع المفتاح في الحقل يجعل الطلب يخرج من المتصفح — أنصح بوضع مفتاحك على خادم وسيط.</li>
+          <li>لتشغيل الكاميرا يجب أن تكون على <code>https</code> أو <code>localhost</code>.</li>
+          <li>لا تحفظ مفتاح OpenAI في المتصفح في بيئة إنتاج—استخدم خادم وسيط.</li>
         </ul>
       </div>
     </section>
@@ -92,6 +97,7 @@
         <div id="cameraArea" class="camera-area hidden">
           <video id="video" autoplay playsinline></video>
           <canvas id="canvas" class="hidden"></canvas>
+
           <div class="camera-actions">
             <button id="captureBtn">📸 التقاط</button>
             <button id="retakeBtn" class="hidden">🔁 إعادة التقاط</button>
