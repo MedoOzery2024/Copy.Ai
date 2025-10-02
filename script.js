@@ -1,12 +1,12 @@
-// Copy.Ai — دمج: تلخيص محلي + OpenAI API option
-// ملاحظات: لو أردت حماية مفتاح OpenAI فلا تضعه في المتصفح، بل استعمل خادم وسيط.
-
+// Copy.Ai — camera fixes + local & OpenAI summarizer
 // DOM
 const fileInput = document.getElementById('fileInput');
 const openCameraBtn = document.getElementById('openCameraBtn');
 const cameraModal = document.getElementById('cameraModal');
 const closeModal = document.getElementById('closeModal');
 const chooseCameraBtns = document.querySelectorAll('.chooseCamera');
+const startCameraBtn = document.getElementById('startCameraBtn');
+const stopCameraBtn = document.getElementById('stopCameraBtn');
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const cameraArea = document.getElementById('cameraArea');
@@ -35,8 +35,8 @@ const apiKeyLabel = document.getElementById('apiKeyLabel');
 let currentStream = null;
 let lastImageBlob = null;
 let extractedText = '';
+let selectedFacing = 'user'; // default mode chosen via modal; 'user' or 'environment'
 
-// show/hide helpers
 const show = el => el.classList.remove('hidden');
 const hide = el => el.classList.add('hidden');
 
@@ -46,7 +46,7 @@ themeToggle.addEventListener('click', ()=>{
   themeToggle.textContent = document.body.classList.contains('light') ? '☀️' : '🌙';
 });
 
-// History (localStorage)
+// History
 function addToHistory(item){
   const raw = localStorage.getItem('copyai_history');
   const arr = raw ? JSON.parse(raw) : [];
@@ -58,7 +58,7 @@ function renderHistory(){
   const raw = localStorage.getItem('copyai_history');
   const arr = raw ? JSON.parse(raw) : [];
   historyList.innerHTML = '';
-  arr.forEach((it, idx)=>{
+  arr.forEach(it=>{
     const li = document.createElement('li');
     li.textContent = `${new Date(it.timestamp).toLocaleString()} — ${it.title}`;
     li.addEventListener('click', ()=>{
@@ -71,7 +71,7 @@ function renderHistory(){
 }
 renderHistory();
 
-// --- File handling (PDF or image)
+// --- File handling (PDF/image)
 fileInput.addEventListener('change', async (e)=>{
   const f = e.target.files[0];
   if(!f) return;
@@ -108,26 +108,58 @@ fileInput.addEventListener('change', async (e)=>{
 openCameraBtn.addEventListener('click', ()=> show(cameraModal));
 closeModal.addEventListener('click', ()=> hide(cameraModal));
 
-// choose camera (front/back)
+// choose camera buttons set selectedFacing and close modal
 chooseCameraBtns.forEach(btn=>{
-  btn.addEventListener('click', async ()=>{
-    const mode = btn.dataset.mode; // 'user' or 'environment'
+  btn.addEventListener('click', ()=>{
+    selectedFacing = btn.dataset.mode; // 'user' or 'environment'
     hide(cameraModal);
-    if(currentStream){ currentStream.getTracks().forEach(t=>t.stop()); currentStream=null; }
-    try{
-      let constraints = { video: { facingMode: mode } };
-      if(mode === 'environment') constraints = { video: { facingMode: { exact: 'environment' } } };
-      currentStream = await navigator.mediaDevices.getUserMedia(constraints);
-    }catch(err){
-      // fallback
-      try { currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: mode } }); }
-      catch(e){ alert('لا توجد الكاميرا المطلوبة: '+e.message); return; }
+    alert(`تم اختيار الكاميرا: ${selectedFacing === 'user' ? 'أمامية' : 'خلفية'} — الآن اضغط 'تشغيل الكاميرا'`);
+  });
+});
+
+// START camera (separate button)
+startCameraBtn.addEventListener('click', async ()=>{
+  // stop existing stream if any
+  stopCurrentStream();
+  try{
+    // choose constraints carefully
+    let constraints;
+    if(selectedFacing === 'environment'){
+      // try exact then fallback
+      constraints = { video: { facingMode: { exact: 'environment' } } };
+      try {
+        currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+      } catch(e) {
+        // fallback to generic environment
+        currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' } });
+      }
+    } else {
+      // user/front camera
+      currentStream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'user' } });
     }
     video.srcObject = currentStream;
     show(cameraArea);
     hide(canvas); hide(retakeBtn); hide(downloadImageBtn);
-  });
+  }catch(err){
+    alert('تعذر فتح الكاميرا: ' + err.message);
+  }
 });
+
+// STOP camera (separate button)
+stopCameraBtn.addEventListener('click', ()=>{
+  stopCurrentStream();
+  hide(cameraArea);
+  // also hide canvas and reset
+  hide(canvas); hide(retakeBtn); hide(downloadImageBtn);
+});
+
+function stopCurrentStream(){
+  if(currentStream){
+    currentStream.getTracks().forEach(t=>t.stop());
+    currentStream = null;
+    video.srcObject = null;
+  }
+}
 
 // capture
 captureBtn.addEventListener('click', ()=>{
@@ -161,15 +193,10 @@ downloadImageBtn.addEventListener('click', ()=>{
   saveAs(lastImageBlob, 'capture.png');
 });
 
-// --- Summarization modes
-// local summarizer supports Arabic + English stopwords
-const STOPWORDS_AR = new Set([
-  'من','في','على','و','ما','إن','أن','ثم','لا','لن','لم','هو','هي','هذا','هذه','هناك','كل','بين','لدى','إلى','عن','حتى','بعد','قبل','قد','كان'
-  // can expand list
-]);
+// --- Summarization (local + OpenAI) ---
+// simple stopwords lists
+const STOPWORDS_AR = new Set(['من','في','على','و','ما','إن','أن','ثم','لا','لن','لم','هو','هي','هذا','هذه','هناك','كل','بين','لدى','إلى','عن','حتى','بعد','قبل','قد','كان']);
 const STOPWORDS_EN = new Set(['the','and','of','to','a','in','is','it','that','for','on','with','as','are','was','this','by','an','be','or','from','at']);
-
-// helper: tokenize and build freq excluding stopwords by selected language
 function buildFreq(sentences, lang){
   const freq = {};
   const stop = (lang === 'ara') ? STOPWORDS_AR : STOPWORDS_EN;
@@ -185,7 +212,6 @@ function buildFreq(sentences, lang){
 }
 function splitSentences(text){
   const s = text.replace(/\n+/g,' ').trim();
-  // match sentences in Arabic and Latin punctuation
   return s.match(/[^.!؟!?]+[.!؟!?]*/g) || [s];
 }
 function extractiveSummary(sentences, n, lang){
@@ -203,32 +229,24 @@ function extractiveSummary(sentences, n, lang){
   });
   scored.sort((a,b)=>b.score - a.score);
   const top = scored.slice(0,n).map(x=>x.s.trim());
-  // preserve original order
   const ordered = sentences.filter(s=>top.includes(s)).slice(0,n);
   return ordered.join(' ');
 }
-
-// chunking helper for large texts (split by chars)
 function chunkText(text, maxChars=3000){
   const chunks = [];
-  for(let i=0;i<text.length;i+=maxChars){
-    chunks.push(text.slice(i,i+maxChars));
-  }
+  for(let i=0;i<text.length;i+=maxChars) chunks.push(text.slice(i,i+maxChars));
   return chunks;
 }
 
-// --- OpenAI summarization (client-side fetch) - NOTE: exposing API key in client is insecure.
-// Recommended: create server-side proxy that calls OpenAI using your secret key.
-// Endpoint here uses /v1/chat/completions (commonly supported). See OpenAI docs for Responses API options. :contentReference[oaicite:1]{index=1}
+// OpenAI summarizer (client-side) - insecure for production; prefer server proxy
 async function summarizeWithOpenAI(text, apiKey, lang, maxSentences){
   if(!apiKey) throw new Error('مفتاح OpenAI مفقود');
-  // chunk if long
   const chunks = chunkText(text, 3000);
   const partials = [];
   for(const chunk of chunks){
     const prompt = `Please provide a concise summary in ${lang==='ara'?'Arabic':'English'} of the following text. Return plain text only.\n\n${chunk}\n\nSummary:`;
     const body = {
-      model: "gpt-4o", // يمكنك تغييره حسب توافر حسابك
+      model: "gpt-4o",
       messages: [{role:'system', content:'You are a helpful summarizer.'},{role:'user', content:prompt}],
       max_tokens: 800
     };
@@ -237,16 +255,11 @@ async function summarizeWithOpenAI(text, apiKey, lang, maxSentences){
       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: JSON.stringify(body)
     });
-    if(!res.ok){
-      const txt = await res.text();
-      throw new Error('OpenAI API error: ' + txt);
-    }
+    if(!res.ok){ const txt = await res.text(); throw new Error('OpenAI API error: ' + txt); }
     const data = await res.json();
-    // get assistant reply
     const reply = data.choices && data.choices[0] && (data.choices[0].message?.content || data.choices[0].text) || '';
     partials.push(reply.trim());
   }
-  // if multiple partials, summarize them into one final summary
   if(partials.length>1){
     const combinedPrompt = `Combine and condense these partial summaries into a final concise summary of up to ${maxSentences} sentences in ${lang==='ara'?'Arabic':'English'}:\n\n${partials.join('\n\n')}`;
     const body2 = {
@@ -259,19 +272,15 @@ async function summarizeWithOpenAI(text, apiKey, lang, maxSentences){
       headers: { 'Content-Type':'application/json', 'Authorization': `Bearer ${apiKey}` },
       body: JSON.stringify(body2)
     });
-    if(!res2.ok){
-      const txt = await res2.text();
-      throw new Error('OpenAI API error: ' + txt);
-    }
+    if(!res2.ok){ const txt = await res2.text(); throw new Error('OpenAI API error: ' + txt); }
     const d2 = await res2.json();
-    const finalReply = d2.choices && d2.choices[0] && (d2.choices[0].message?.content || d2.choices[0].text) || '';
-    return finalReply.trim();
+    return d2.choices && d2.choices[0] && (d2.choices[0].message?.content || d2.choices[0].text) || '';
   } else {
     return partials[0] || '';
   }
 }
 
-// --- Summarize button handler (uses local summarizer by default, or OpenAI if checked)
+// Summarize handler
 summarizeBtn.addEventListener('click', async ()=>{
   if(!extractedText || extractedText.trim().length < 10) return alert('لا يوجد نص كافٍ للتلخيص. ارفع ملفًا أو التقط صورة.');
   show(loader); hide(summaryActions); summaryEl.textContent = '...'; hide(summaryMeta);
@@ -280,17 +289,14 @@ summarizeBtn.addEventListener('click', async ()=>{
 
   try{
     if(useAiCheckbox.checked){
-      // AI path
       const apiKey = apiKeyInput.value.trim();
-      if(!apiKey){ hide(loader); return alert('ضع مفتاح OpenAI في الحقل ليعمل الملخّص بالذكاء الاصطناعي (أو ألغِ التفعيل لاستخدام الملخّص المحلي).'); }
-      // call OpenAI
+      if(!apiKey){ hide(loader); return alert('ضع مفتاح OpenAI في الحقل ليعمل الملخّص بالذكاء الاصطناعي.'); }
       const aiSummary = await summarizeWithOpenAI(extractedText, apiKey, lang, n);
       summaryEl.textContent = aiSummary;
       summaryMeta.textContent = `طريقة: OpenAI — جمل المصدر: ${splitSentences(extractedText).length} — كلمات الملخص: ${aiSummary.split(/\s+/).filter(Boolean).length}`;
       show(summaryActions); show(summaryMeta);
       addToHistory({type:'summary', title:'Summary (AI)', text:aiSummary, timestamp:Date.now()});
     } else {
-      // Local summarizer
       const sentences = splitSentences(extractedText);
       const summary = extractiveSummary(sentences, n, lang==='ara' ? 'ara' : 'eng');
       summaryEl.textContent = summary;
@@ -311,17 +317,15 @@ clearBtn.addEventListener('click', ()=>{ extractedText=''; extractedTextEl.value
 // Copy summary
 copyBtn.addEventListener('click', async ()=>{ try{ await navigator.clipboard.writeText(summaryEl.textContent); alert('تم نسخ الملخص'); }catch(e){ alert('فشل النسخ: '+e.message); } });
 
-// Download TXT
+// Downloads
 downloadTxtBtn.addEventListener('click', ()=>{ const txt = summaryEl.textContent || ''; const blob = new Blob([txt], {type:'text/plain;charset=utf-8'}); saveAs(blob, 'summary.txt'); });
-
-// Download PDF (نُنشئ PDF بسيط - للاحتراف استخدم jsPDF)
 downloadPdfBtn.addEventListener('click', ()=>{ const txt = summaryEl.textContent || ''; const blob = new Blob([txt], {type:'application/pdf'}); saveAs(blob, 'summary.pdf'); });
 
 // History button
 historyBtn.addEventListener('click', ()=>{ const raw = localStorage.getItem('copyai_history'); const arr = raw?JSON.parse(raw):[]; alert('السجل يحتوي على '+arr.length+' عنصر'); });
 
-// Update visibility of API key input when checking useAi
+// Update API key input visibility
 useAiCheckbox.addEventListener('change', ()=>{ if(useAiCheckbox.checked) apiKeyLabel.classList.remove('hidden'); else apiKeyLabel.classList.add('hidden'); });
 
-// --- initial UI state
+// initial UI state
 hide(cameraArea); hide(canvas); hide(retakeBtn); hide(downloadImageBtn); hide(loader); hide(summaryActions);
