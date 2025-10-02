@@ -6,21 +6,33 @@
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <h1>📸 التقاط صورة بالكاميرا</h1>
+  <h1>📖 Copy.Ai - تلخيص النصوص</h1>
   
   <div class="buttons">
-    <button onclick="startCamera('user')">الكاميرا الأمامية</button>
-    <button onclick="startCamera('environment')">الكاميرا الخلفية</button>
+    <button onclick="startCamera('user')">📱 الكاميرا الأمامية</button>
+    <button onclick="startCamera('environment')">📷 الكاميرا الخلفية</button>
   </div>
   
   <video id="video" autoplay playsinline width="320" height="240"></video>
   <br>
   <button onclick="capture()">📷 التقاط</button>
   <button onclick="downloadImage()">💾 تحميل الصورة</button>
+  <button onclick="summarizeImage()">📝 تلخيص الصورة</button>
+  
+  <hr>
+  
+  <h3>📂 أو ارفع ملف PDF</h3>
+  <input type="file" id="pdfInput" accept="application/pdf">
+  <button onclick="summarizePDF()">📝 تلخيص PDF</button>
   
   <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
   <div id="output"></div>
   
+  <h3>📌 التلخيص:</h3>
+  <div id="summary"></div>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>
