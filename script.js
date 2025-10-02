@@ -1,141 +1,105 @@
-let currentStream = null;
-const cameraPreview = document.getElementById("cameraPreview");
-const canvas = document.getElementById("snapshotCanvas");
-const ctx = canvas.getContext("2d");
+// ضع مفتاح OpenAI API هنا
+const OPENAI_API_KEY = "ضع_مفتاحك_هنا";
 
-// فتح المودال
+// فتح/إغلاق المودال
 function openModal() {
   document.getElementById("cameraModal").style.display = "flex";
 }
-
-// إغلاق المودال
 function closeModal() {
   document.getElementById("cameraModal").style.display = "none";
 }
-
-// تشغيل الكاميرا
-function startCamera(mode) {
-  if (currentStream) {
-    currentStream.getTracks().forEach(track => track.stop());
-  }
-
-  navigator.mediaDevices.getUserMedia({ video: { facingMode: mode } })
-    .then(stream => {
-      currentStream = stream;
-      cameraPreview.srcObject = stream;
-      cameraPreview.play();
-      closeModal(); // إغلاق المودال بعد الاختيار
-    })
-    .catch(err => {
-      alert("تعذر تشغيل الكاميرا: " + err);
-    });
-}
-
-// إيقاف الكاميرا
-function stopCamera() {
-  if (currentStream) {
-    currentStream.getTracks().forEach(track => track.stop());
-    currentStream = null;
-    cameraPreview.srcObject = null;
-  }
-}
-
-// إغلاق المودال عند الضغط خارج المحتوى
 window.onclick = function(event) {
   const modal = document.getElementById("cameraModal");
-  if (event.target === modal) {
-    closeModal();
-  }
-};
-
-// التقاط صورة
-document.getElementById("captureBtn").addEventListener("click", () => {
-  if (!currentStream) return;
-  canvas.width = cameraPreview.videoWidth;
-  canvas.height = cameraPreview.videoHeight;
-  ctx.drawImage(cameraPreview, 0, 0, canvas.width, canvas.height);
-  canvas.style.display = "block";
-  document.getElementById("retakeBtn").style.display = "inline-block";
-  document.getElementById("downloadImageBtn").style.display = "inline-block";
-});
-
-// إعادة الالتقاط
-document.getElementById("retakeBtn").addEventListener("click", () => {
-  canvas.style.display = "none";
-  document.getElementById("retakeBtn").style.display = "none";
-  document.getElementById("downloadImageBtn").style.display = "none";
-});
-
-// تحميل الصورة
-document.getElementById("downloadImageBtn").addEventListener("click", () => {
-  const link = document.createElement("a");
-  link.download = "snapshot.png";
-  link.href = canvas.toDataURL();
-  link.click();
-});
-
-// تلخيص محلي
-document.getElementById("summarizeLocalBtn").addEventListener("click", () => {
-  const text = document.getElementById("extractedText").value;
-  const lang = document.getElementById("langSelect").value;
-  document.getElementById("summaryOutput").value = summarizeLocal(text, lang);
-});
-
-// تلخيص بالذكاء الاصطناعي (OpenAI API)
-document.getElementById("summarizeAIBtn").addEventListener("click", async () => {
-  const text = document.getElementById("extractedText").value;
-  const apiKey = "ضع_مفتاحك_هنا"; // ⚠️ ضع مفتاح OpenAI API هنا
-  const summary = await summarizeWithAI(text, apiKey);
-  document.getElementById("summaryOutput").value = summary;
-});
-
-// تحميل الملخص
-document.getElementById("downloadSummaryBtn").addEventListener("click", () => {
-  const blob = new Blob([document.getElementById("summaryOutput").value], { type: "text/plain" });
-  const link = document.createElement("a");
-  link.href = URL.createObjectURL(blob);
-  link.download = "summary.txt";
-  link.click();
-});
-
-// === خوارزمية تلخيص محلية بسيطة تدعم العربية والإنجليزية ===
-function summarizeLocal(text, lang) {
-  if (!text.trim()) return "⚠️ لا يوجد نص للتلخيص";
-  const stopwords = {
-    ar: ["من","في","إلى","على","عن","أن","إن","هو","هي","هذا","هذه","هناك","كل"],
-    en: ["the","is","in","at","of","on","and","a","to","it","for","with"]
-  };
-  const words = text.split(/\s+/).filter(w => !stopwords[lang].includes(w.toLowerCase()));
-  const sentences = text.match(/[^.!؟\n]+[.!؟\n]*/g) || [];
-  const scores = sentences.map(s => {
-    let score = 0;
-    words.forEach(w => { if (s.includes(w)) score++; });
-    return { s, score };
-  });
-  scores.sort((a,b)=>b.score-a.score);
-  return scores.slice(0,3).map(x=>x.s.trim()).join(" ");
+  if (event.target === modal) closeModal();
 }
 
-// === التلخيص بالذكاء الاصطناعي (OpenAI API) ===
-async function summarizeWithAI(text, apiKey) {
-  if (!apiKey || apiKey === "ضع_مفتاحك_هنا") {
-    return "⚠️ ضع مفتاح OpenAI API في script.js";
+// تشغيل الكاميرا
+let stream;
+async function startCamera(facingMode) {
+  closeModal();
+  if (stream) {
+    stream.getTracks().forEach(track => track.stop());
   }
-  try {
-    const res = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": "Bearer " + apiKey
-      },
-      body: JSON.stringify({
-        model: "gpt-3.5-turbo",
-        messages: [{ role: "user", content: "لخص النص التالي باختصار:\n" + text }]
-      })
-    });
-    const data = await res.json();
-    return data.choices[0].message.content;
-  } catch (e) {
-    return "❌ خطأ أثناء الاتصال بالذكاء الاصطناعي";
+  stream = await navigator.mediaDevices.getUserMedia({
+    video: { facingMode }
+  });
+  document.getElementById("cameraPreview").srcObject = stream;
+}
+
+// التقاط صورة واستخراج نص (OCR)
+document.getElementById("captureBtn").onclick = async function() {
+  const video = document.getElementById("cameraPreview");
+  const canvas = document.getElementById("canvas");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  canvas.getContext("2d").drawImage(video, 0, 0);
+
+  const { data: { text } } = await Tesseract.recognize(canvas, "ara+eng");
+  document.getElementById("extractedText").value = text;
+};
+
+// رفع PDF واستخراج نصوص
+document.getElementById("pdfUpload").addEventListener("change", async function(e) {
+  const file = e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = async function() {
+    const pdf = await pdfjsLib.getDocument({ data: reader.result }).promise;
+    let fullText = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const textContent = await page.getTextContent();
+      const pageText = textContent.items.map(item => item.str).join(" ");
+      fullText += pageText + "\n";
+    }
+    document.getElementById("extractedText").value = fullText;
+  };
+  reader.readAsArrayBuffer(file);
+});
+
+// تلخيص باستخدام OpenAI
+async function summarize() {
+  const text = document.getElementById("extractedText").value.trim();
+  const langChoice = document.getElementById("langSelect").value;
+  
+  if (!text) {
+    alert("لا يوجد نص لتلخيصه!");
+    return;
+  }
+
+  // إعداد البرومبت حسب اللغة
+  let prompt = `لخص النص التالي باحترافية:\n\n${text}`;
+  if (langChoice === "en") {
+    prompt = `Summarize the following text professionally in English:\n\n${text}`;
+  } else if (langChoice === "fr") {
+    prompt = `Résumez le texte suivant en français de manière professionnelle:\n\n${text}`;
+  } else if (langChoice === "de") {
+    prompt = `Fassen Sie den folgenden Text professionell auf Deutsch zusammen:\n\n${text}`;
+  } else if (langChoice === "ar") {
+    prompt = `لخص النص التالي باللغة العربية:\n\n${text}`;
+  }
+
+  const response = await fetch("https://api.openai.com/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": `Bearer ${OPENAI_API_KEY}`
+    },
+    body: JSON.stringify({
+      model: "gpt-4o-mini",
+      messages: [
+        { role: "system", content: "أنت مساعد ذكي يلخص النصوص بدقة بجميع اللغات." },
+        { role: "user", content: prompt }
+      ],
+      max_tokens: 500
+    })
+  });
+
+  const data = await response.json();
+  if (data.choices) {
+    document.getElementById("summary").value = data.choices[0].message.content;
+  } else {
+    document.getElementById("summary").value = "❌ حدث خطأ أثناء التلخيص.";
   }
 }
