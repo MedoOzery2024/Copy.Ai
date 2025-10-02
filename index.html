@@ -1,61 +1,143 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Copy.Ai</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Copy.Ai — ملخص المستندات</title>
   <link rel="stylesheet" href="style.css">
+
+  <!-- PDF.js + worker -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+  <script> if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.worker.min.js'; </script>
+
+  <!-- Tesseract -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+
+  <!-- FileSaver -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
 </head>
 <body>
-  <header>
-    <div class="logo">
-      <span class="logo-icon">📘</span>
-      <h1>Copy.Ai</h1>
+  <header class="topbar">
+    <div class="brand">
+      <div class="logo">📘</div>
+      <div class="title">Copy.Ai</div>
     </div>
-    <button id="themeToggle">🌙</button>
+
+    <div class="top-actions">
+      <button id="themeToggle" title="تبديل الوضع">🌙</button>
+      <button id="historyBtn" title="السجل">📚</button>
+    </div>
   </header>
 
-  <main>
-    <div class="card upload-card">
-      <h2>📂 ارفع ملف PDF أو التقط صورة</h2>
-      <input type="file" id="pdfInput" accept="application/pdf">
-      <button id="cameraBtn">📸 استخدم الكاميرا</button>
-      <video id="cameraStream" autoplay style="display:none;"></video>
-      <button id="captureBtn" style="display:none;">📷 التقط</button>
-      <canvas id="snapshot" style="display:none;"></canvas>
-    </div>
+  <main class="container">
 
-    <div class="card options-card">
-      <h2>🌍 اختر اللغة</h2>
-      <select id="languageSelect">
-        <option value="eng">English</option>
-        <option value="ara">العربية</option>
-        <option value="fra">Français</option>
-        <option value="spa">Español</option>
-        <option value="deu">Deutsch</option>
-      </select>
-      <button id="summarizeBtn">✨ تلخيص</button>
-    </div>
-
-    <div class="card result-card">
-      <h2>📑 الملخص</h2>
-      <div id="loader" style="display:none;">⏳ جاري المعالجة...</div>
-      <div id="summaryOutput">لم يتم التلخيص بعد...</div>
-      <div class="summary-actions" style="display:none;">
-        <button id="copySummary">📋 نسخ</button>
-        <button id="downloadTxt">⬇️ TXT</button>
-        <button id="downloadPdf">⬇️ PDF</button>
+    <!-- LEFT -->
+    <section class="left-col">
+      <div class="card">
+        <h3>1) رفع ملف PDF أو صورة</h3>
+        <input id="fileInput" type="file" accept="application/pdf,image/*" />
+        <small class="hint">أو استخدم الكاميرا لالتقاط صورة للمستند.</small>
       </div>
-      <div id="summaryStats"></div>
-    </div>
+
+      <div class="card">
+        <h3>2) الكاميرا (اختيار)</h3>
+        <button id="openCameraBtn">📷 افتح الكاميرا</button>
+        <div class="small">عند الضغط سيظهر خيار اختيار الكاميرا: أمامية / خلفية.</div>
+      </div>
+
+      <div class="card">
+        <h3>3) إعدادات التلخيص</h3>
+
+        <label>لغة OCR / الملخص
+          <select id="langSelect">
+            <option value="ara">العربية</option>
+            <option value="eng">English</option>
+            <option value="fra">Français</option>
+            <option value="spa">Español</option>
+            <option value="deu">Deutsch</option>
+          </select>
+        </label>
+
+        <label>عدد جمل الملخص
+          <input id="sentCount" type="number" min="1" max="20" value="5" />
+        </label>
+
+        <label class="ai-option">
+          <input id="useAi" type="checkbox" /> استخدم ملخّص الذكاء الاصطناعي (OpenAI)
+        </label>
+
+        <label id="apiKeyLabel" class="hidden">OpenAI API Key (sk-...):
+          <input id="openaiKey" type="password" placeholder="ضع مفتاح OpenAI هنا (اختياري)" />
+        </label>
+
+        <div class="controls-row">
+          <button id="summarizeBtn">✨ تلخيص</button>
+          <button id="clearBtn">🧹 مسح</button>
+        </div>
+      </div>
+
+      <div class="card small muted">
+        <strong>ملاحظات تشغيل:</strong>
+        <ul>
+          <li>التقاط الكاميرا يعمل على HTTPS أو localhost.</li>
+          <li>لـ OpenAI: وضع المفتاح في الحقل يجعل الطلب يخرج من المتصفح — أنصح بوضع مفتاحك على خادم وسيط.</li>
+        </ul>
+      </div>
+    </section>
+
+    <!-- RIGHT -->
+    <section class="right-col">
+      <div class="card">
+        <h3>معاينة الكاميرا</h3>
+        <div id="cameraArea" class="camera-area hidden">
+          <video id="video" autoplay playsinline></video>
+          <canvas id="canvas" class="hidden"></canvas>
+          <div class="camera-actions">
+            <button id="captureBtn">📸 التقاط</button>
+            <button id="retakeBtn" class="hidden">🔁 إعادة التقاط</button>
+            <button id="downloadImageBtn" class="hidden">⬇️ تنزيل صورة</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>النص المستخرج</h3>
+        <textarea id="extractedText" placeholder="سيظهر النص المستخرج هنا..." readonly></textarea>
+      </div>
+
+      <div class="card">
+        <h3>الملخص</h3>
+        <div id="loader" class="loader hidden">⏳ جاري المعالجة...</div>
+        <div id="summary" class="summary">لم يتم التلخيص بعد.</div>
+        <div id="summaryMeta" class="meta hidden"></div>
+
+        <div class="summary-actions hidden" id="summaryActions">
+          <button id="copyBtn">📋 نسخ الملخص</button>
+          <button id="downloadTxtBtn">⬇️ تحميل TXT</button>
+          <button id="downloadPdfBtn">⬇️ تحميل PDF</button>
+        </div>
+      </div>
+
+      <div class="card small">
+        <h4>السجل (History)</h4>
+        <ul id="historyList" class="history-list"></ul>
+      </div>
+    </section>
   </main>
 
-  <footer>
-    <p>© 2025 Copy.Ai - All rights reserved</p>
-  </footer>
+  <!-- Modal لاختيار الكاميرا -->
+  <div id="cameraModal" class="modal hidden">
+    <div class="modal-inner">
+      <h3>اختر الكاميرا</h3>
+      <div class="modal-row">
+        <button class="chooseCamera" data-mode="user">📱 أمامية (Front)</button>
+        <button class="chooseCamera" data-mode="environment">📷 خلفية (Back)</button>
+      </div>
+      <button id="closeModal" class="modal-close">إلغاء</button>
+    </div>
+  </div>
+
+  <footer class="footer">© 2025 Copy.Ai</footer>
 
   <script src="script.js"></script>
 </body>
