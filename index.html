@@ -2,71 +2,25 @@
 <html lang="ar">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Copy.Ai</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
-  <header>
-    <h1>📘 Copy.Ai</h1>
-    <p>رفع PDF أو تصوير الأوراق ➝ استخراج النصوص ➝ تلخيص ذكي</p>
-  </header>
-
-  <main>
-    <!-- رفع PDF -->
-    <section>
-      <h2>📂 رفع ملف PDF</h2>
-      <input type="file" id="pdfUpload" accept="application/pdf">
-    </section>
-
-    <!-- الكاميرا -->
-    <section>
-      <h2>📷 استخدام الكاميرا</h2>
-      <button onclick="openModal()">تشغيل الكاميرا</button>
-      <video id="cameraPreview" autoplay playsinline></video>
-      <button id="captureBtn">📸 التقاط</button>
-      <canvas id="canvas" style="display:none;"></canvas>
-    </section>
-
-    <!-- النص -->
-    <section>
-      <h2>📝 النص المستخرج</h2>
-      <textarea id="extractedText" rows="6" readonly></textarea>
-    </section>
-
-    <!-- إعدادات التلخيص -->
-    <section>
-      <h2>⚙️ إعدادات التلخيص</h2>
-      <label for="langSelect">اختر لغة التلخيص:</label>
-      <select id="langSelect">
-        <option value="auto" selected>🔄 نفس لغة النص</option>
-        <option value="ar">🇪🇬 العربية</option>
-        <option value="en">🇬🇧 الإنجليزية</option>
-        <option value="fr">🇫🇷 الفرنسية</option>
-        <option value="de">🇩🇪 الألمانية</option>
-      </select>
-      <button onclick="summarize()">✨ تلخيص النص</button>
-    </section>
-
-    <!-- التلخيص -->
-    <section>
-      <h2>📑 التلخيص</h2>
-      <textarea id="summary" rows="6" readonly></textarea>
-    </section>
-  </main>
-
-  <!-- مودال الكاميرا -->
-  <div id="cameraModal" class="modal">
-    <div class="modal-content">
-      <h3>اختر الكاميرا!</h3>
-      <button onclick="startCamera('user')">📱 أمامية (Front)</button>
-      <button onclick="startCamera('environment')">📷 خلفية (Back)</button>
-      <button onclick="closeModal()">❌ إلغاء</button>
-    </div>
+  <h1>📸 التقاط صورة بالكاميرا</h1>
+  
+  <div class="buttons">
+    <button onclick="startCamera('user')">الكاميرا الأمامية</button>
+    <button onclick="startCamera('environment')">الكاميرا الخلفية</button>
   </div>
-
-  <script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.4.120/build/pdf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+  
+  <video id="video" autoplay playsinline width="320" height="240"></video>
+  <br>
+  <button onclick="capture()">📷 التقاط</button>
+  <button onclick="downloadImage()">💾 تحميل الصورة</button>
+  
+  <canvas id="canvas" width="320" height="240" style="display:none;"></canvas>
+  <div id="output"></div>
+  
   <script src="script.js"></script>
 </body>
 </html>
