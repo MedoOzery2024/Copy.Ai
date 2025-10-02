@@ -9,13 +9,24 @@ const summaryOutput = document.getElementById("summaryOutput");
 const languageSelect = document.getElementById("languageSelect");
 const downloadTxt = document.getElementById("downloadTxt");
 const downloadPdf = document.getElementById("downloadPdf");
-const downloadButtons = document.querySelector(".download-buttons");
+const copySummary = document.getElementById("copySummary");
+const summaryActions = document.querySelector(".summary-actions");
+const loader = document.getElementById("loader");
+const stats = document.getElementById("summaryStats");
+const themeToggle = document.getElementById("themeToggle");
+
+// Toggle Theme
+themeToggle.addEventListener("click", () => {
+  document.body.classList.toggle("light");
+  themeToggle.textContent = document.body.classList.contains("light") ? "☀️" : "🌙";
+});
 
 // PDF Upload & Read
 pdfInput.addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
 
+  loader.style.display = "block";
   const fileReader = new FileReader();
   fileReader.onload = async function() {
     const typedarray = new Uint8Array(this.result);
@@ -29,6 +40,7 @@ pdfInput.addEventListener("change", async (e) => {
       });
     }
     extractedText = text;
+    loader.style.display = "none";
     alert("✅ تم استخراج النصوص من PDF بنجاح");
   };
   fileReader.readAsArrayBuffer(file);
@@ -52,9 +64,11 @@ captureBtn.addEventListener("click", () => {
   captureBtn.style.display = "none";
   canvas.style.display = "block";
 
+  loader.style.display = "block";
   const lang = languageSelect.value;
   Tesseract.recognize(canvas, lang).then(({ data: { text } }) => {
     extractedText = text;
+    loader.style.display = "none";
     alert("✅ تم استخراج النصوص من الصورة");
   });
 });
@@ -65,12 +79,28 @@ summarizeBtn.addEventListener("click", () => {
     alert("⚠️ لم يتم رفع ملف أو التقاط صورة بعد!");
     return;
   }
-  const sentences = extractedText.split(/[.؟!]/).filter(s => s.trim().length > 0);
-  const summary = sentences.slice(0, 3).join(". ") + "...";
-  summaryOutput.innerText = summary;
 
-  // Show download buttons
-  downloadButtons.style.display = "flex";
+  loader.style.display = "block";
+  setTimeout(() => {
+    const sentences = extractedText.split(/[.؟!]/).filter(s => s.trim().length > 0);
+    const summary = sentences.slice(0, 5).join(". ") + "...";
+    summaryOutput.innerText = summary;
+
+    // Show buttons
+    summaryActions.style.display = "flex";
+
+    // Stats
+    const words = summary.split(/\s+/).length;
+    stats.textContent = `📊 عدد الجمل: ${sentences.length} | عدد الكلمات في الملخص: ${words}`;
+
+    loader.style.display = "none";
+  }, 1000);
+});
+
+// Copy Summary
+copySummary.addEventListener("click", () => {
+  navigator.clipboard.writeText(summaryOutput.innerText);
+  alert("📋 تم نسخ الملخص للحافظة");
 });
 
 // Download TXT
