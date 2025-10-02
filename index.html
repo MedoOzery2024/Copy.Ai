@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ar">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -15,6 +15,7 @@
       <span class="logo-icon">📘</span>
       <h1>Copy.Ai</h1>
     </div>
+    <button id="themeToggle">🌙</button>
   </header>
 
   <main>
@@ -41,11 +42,14 @@
 
     <div class="card result-card">
       <h2>📑 الملخص</h2>
+      <div id="loader" style="display:none;">⏳ جاري المعالجة...</div>
       <div id="summaryOutput">لم يتم التلخيص بعد...</div>
-      <div class="download-buttons" style="display:none;">
-        <button id="downloadTxt">⬇️ تحميل TXT</button>
-        <button id="downloadPdf">⬇️ تحميل PDF</button>
+      <div class="summary-actions" style="display:none;">
+        <button id="copySummary">📋 نسخ</button>
+        <button id="downloadTxt">⬇️ TXT</button>
+        <button id="downloadPdf">⬇️ PDF</button>
       </div>
+      <div id="summaryStats"></div>
     </div>
   </main>
 
