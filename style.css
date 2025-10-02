@@ -19,6 +19,8 @@ select,input[type=number],input[type=password]{width:100%;padding:10px;border-ra
 .controls-row{display:flex;gap:8px;margin-top:10px}
 .controls-row button{flex:1;padding:10px;border-radius:8px;border:0;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#001}
 .hint{color:var(--muted)}
+.camera-controls-row{display:flex;gap:8px;flex-wrap:wrap}
+.camera-controls-row button{padding:10px;border-radius:8px;border:0;background:linear-gradient(90deg,var(--accent),var(--accent2));color:#001;cursor:pointer}
 .camera-area{display:flex;flex-direction:column;align-items:center;gap:8px}
 video{width:100%;max-width:480px;border-radius:8px;background:#000}
 canvas{max-width:480px;border-radius:8px}
