@@ -1,106 +1,86 @@
-const fileInput = document.getElementById("fileInput");
-const cameraBtn = document.getElementById("cameraBtn");
-const summarizeBtn = document.getElementById("summarizeBtn");
-const downloadBtn = document.getElementById("downloadBtn");
-const summaryOutput = document.getElementById("summaryOutput");
-const statusLog = document.getElementById("statusLog");
-const langSelect = document.getElementById("langSelect");
-const summaryLength = document.getElementById("summaryLength");
-
 let extractedText = "";
+const pdfInput = document.getElementById("pdfInput");
+const cameraBtn = document.getElementById("cameraBtn");
+const captureBtn = document.getElementById("captureBtn");
+const video = document.getElementById("cameraStream");
+const canvas = document.getElementById("snapshot");
+const summarizeBtn = document.getElementById("summarizeBtn");
+const summaryOutput = document.getElementById("summaryOutput");
+const languageSelect = document.getElementById("languageSelect");
+const downloadTxt = document.getElementById("downloadTxt");
+const downloadPdf = document.getElementById("downloadPdf");
+const downloadButtons = document.querySelector(".download-buttons");
 
-// تحديث السجل
-function logStatus(msg) {
-  const li = document.createElement("li");
-  li.textContent = msg;
-  statusLog.appendChild(li);
-}
-
-// قراءة PDF
-async function readPDF(file) {
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  let textContent = "";
-
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const text = await page.getTextContent();
-    text.items.forEach(item => {
-      textContent += item.str + " ";
-    });
-  }
-  return textContent;
-}
-
-// OCR للصور
-async function readImage(file, langCode) {
-  const { data: { text } } = await Tesseract.recognize(file, langCode);
-  return text;
-}
-
-// تلخيص النص
-function summarizeText(text, numSentences) {
-  const sentences = text.match(/[^.!؟\n]+[.!؟\n]?/g) || [];
-  if (sentences.length <= numSentences) return text;
-
-  let freq = {};
-  text.split(/\s+/).forEach(word => {
-    word = word.toLowerCase();
-    if (!freq[word]) freq[word] = 0;
-    freq[word]++;
-  });
-
-  let scored = sentences.map(s => {
-    let score = 0;
-    s.split(/\s+/).forEach(word => {
-      word = word.toLowerCase();
-      if (freq[word]) score += freq[word];
-    });
-    return { sentence: s, score };
-  });
-
-  scored.sort((a, b) => b.score - a.score);
-  return scored.slice(0, numSentences).map(s => s.sentence).join(" ");
-}
-
-// عند رفع الملف
-fileInput.addEventListener("change", async () => {
-  const file = fileInput.files[0];
+// PDF Upload & Read
+pdfInput.addEventListener("change", async (e) => {
+  const file = e.target.files[0];
   if (!file) return;
 
-  logStatus("جارٍ قراءة الملف...");
-  if (file.type === "application/pdf") {
-    extractedText = await readPDF(file);
-  } else if (file.type.startsWith("image/")) {
-    extractedText = await readImage(file, langSelect.value);
-  }
-  logStatus("تم استخراج النص.");
+  const fileReader = new FileReader();
+  fileReader.onload = async function() {
+    const typedarray = new Uint8Array(this.result);
+    const pdf = await pdfjsLib.getDocument(typedarray).promise;
+    let text = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+      const page = await pdf.getPage(i);
+      const content = await page.getTextContent();
+      content.items.forEach((item) => {
+        text += item.str + " ";
+      });
+    }
+    extractedText = text;
+    alert("✅ تم استخراج النصوص من PDF بنجاح");
+  };
+  fileReader.readAsArrayBuffer(file);
 });
 
-// فتح الكاميرا
-cameraBtn.addEventListener("click", () => {
-  logStatus("ميزة الكاميرا تحتاج HTTPS أو خادم محلي.");
-  alert("ميزة الكاميرا ستعمل عند فتح الموقع عبر HTTPS أو localhost.");
+// Camera Access
+cameraBtn.addEventListener("click", async () => {
+  const stream = await navigator.mediaDevices.getUserMedia({ video: true });
+  video.style.display = "block";
+  captureBtn.style.display = "block";
+  video.srcObject = stream;
 });
 
-// تنفيذ التلخيص
+// Capture Image
+captureBtn.addEventListener("click", () => {
+  const ctx = canvas.getContext("2d");
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  video.style.display = "none";
+  captureBtn.style.display = "none";
+  canvas.style.display = "block";
+
+  const lang = languageSelect.value;
+  Tesseract.recognize(canvas, lang).then(({ data: { text } }) => {
+    extractedText = text;
+    alert("✅ تم استخراج النصوص من الصورة");
+  });
+});
+
+// Summarize Function
 summarizeBtn.addEventListener("click", () => {
   if (!extractedText) {
-    alert("من فضلك ارفع ملف أو صورة أولاً");
+    alert("⚠️ لم يتم رفع ملف أو التقاط صورة بعد!");
     return;
   }
-  const num = parseInt(summaryLength.value, 10);
-  const summary = summarizeText(extractedText, num);
-  summaryOutput.value = summary;
-  logStatus("تم إنشاء الملخص.");
+  const sentences = extractedText.split(/[.؟!]/).filter(s => s.trim().length > 0);
+  const summary = sentences.slice(0, 3).join(". ") + "...";
+  summaryOutput.innerText = summary;
+
+  // Show download buttons
+  downloadButtons.style.display = "flex";
 });
 
-// تحميل الملخص
-downloadBtn.addEventListener("click", () => {
-  const blob = new Blob([summaryOutput.value], { type: "text/plain" });
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = "summary.txt";
-  a.click();
-  logStatus("تم تحميل الملخص.");
+// Download TXT
+downloadTxt.addEventListener("click", () => {
+  const blob = new Blob([summaryOutput.innerText], { type: "text/plain;charset=utf-8" });
+  saveAs(blob, "summary.txt");
+});
+
+// Download PDF
+downloadPdf.addEventListener("click", () => {
+  const blob = new Blob([summaryOutput.innerText], { type: "application/pdf" });
+  saveAs(blob, "summary.pdf");
 });
