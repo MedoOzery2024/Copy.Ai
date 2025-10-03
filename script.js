@@ -318,11 +318,17 @@ function summarizeText() {
 }
 
 function generateSmartSummary(text, length) {
-    const sentences = text.split(/[.!?؟]+/).filter(s => s.trim().length > 0);
+    text = normalizeArabicText(text);
+
+    const sentences = text.split(/[.!?؟।]+/).filter(s => s.trim().length > 0);
     const words = text.split(/\s+/).filter(w => w.length > 0);
 
     if (sentences.length === 0) {
         return 'لا يمكن تلخيص هذا النص.';
+    }
+
+    if (sentences.length <= 2) {
+        return sentences.map(s => s.trim()).join('. ') + '.';
     }
 
     let targetLength;
@@ -336,6 +342,8 @@ function generateSmartSummary(text, length) {
         default:
             targetLength = Math.max(1, Math.floor(sentences.length * 0.5));
     }
+
+    targetLength = Math.max(1, Math.min(targetLength, sentences.length));
 
     const scoredSentences = sentences.map((sentence, index) => ({
         sentence: sentence.trim(),
@@ -356,60 +364,133 @@ function generateSmartSummary(text, length) {
     return summary || 'تعذر إنشاء تلخيص للنص المقدم.';
 }
 
+function normalizeArabicText(text) {
+    return text
+        .replace(/[أإآ]/g, 'ا')
+        .replace(/ى/g, 'ي')
+        .replace(/ة/g, 'ه')
+        .replace(/\s+/g, ' ')
+        .trim();
+}
+
 function calculateSentenceScore(sentence, allSentences, allWords, position) {
     let score = 0;
-    const words = sentence.split(/\s+/).filter(w => w.length > 0);
+    const normalizedSentence = normalizeArabicText(sentence.toLowerCase());
+    const words = normalizedSentence.split(/\s+/).filter(w => w.length > 0);
 
-    score += Math.min(words.length / 15, 2);
+    const idealLength = 15;
+    const lengthDiff = Math.abs(words.length - idealLength);
+    score += Math.max(0, 2 - (lengthDiff / 10));
 
-    if (position === 0 || position === allSentences.length - 1) {
-        score += 2;
+    if (position === 0) {
+        score += 3;
+    } else if (position === allSentences.length - 1) {
+        score += 2.5;
+    } else if (position === 1) {
+        score += 1.5;
     } else if (position < 3) {
         score += 1;
     }
 
     const arabicKeywords = [
-        'مهم', 'خلاصة', 'نتيجة', 'استنتاج', 'أهم', 'رئيسي', 'أساسي', 'ضروري',
-        'يجب', 'ينبغي', 'الأهم', 'بشكل', 'خاص', 'تحديداً', 'أولاً', 'ثانياً',
-        'أخيراً', 'وأخيراً', 'باختصار', 'بالتالي', 'لذلك', 'إذن'
+        'مهم', 'خلاصه', 'نتيجه', 'استنتاج', 'اهم', 'رييسي', 'اساسي', 'ضروري',
+        'يجب', 'ينبغي', 'الاهم', 'بشكل', 'خاص', 'تحديدا', 'اولا', 'ثانيا', 'ثالثا',
+        'اخيرا', 'واخيرا', 'باختصار', 'بالتالي', 'لذلك', 'اذن', 'وبذلك', 'ومن ثم',
+        'الهدف', 'الغرض', 'السبب', 'الحل', 'المشكله', 'القضيه', 'الموضوع',
+        'يتضح', 'يظهر', 'نلاحظ', 'نري', 'نستنتج', 'نستخلص', 'يمكن', 'يعني',
+        'بمعني', 'اي', 'علي', 'سبيل', 'المثال', 'مثل', 'كذلك', 'ايضا',
+        'بالاضافه', 'فضلا', 'علاوه', 'زياده', 'كما', 'حيث', 'اذا', 'عندما',
+        'بينما', 'بعد', 'قبل', 'خلال', 'اثناء', 'طوال', 'منذ', 'حتي',
+        'الواجب', 'الضروري', 'المطلوب', 'المفروض', 'اللازم', 'الحتمي'
     ];
 
     const englishKeywords = [
         'important', 'summary', 'conclusion', 'result', 'main', 'key', 'essential',
         'must', 'should', 'critical', 'significant', 'major', 'primary', 'first',
-        'second', 'finally', 'therefore', 'thus', 'hence', 'consequently'
+        'second', 'finally', 'therefore', 'thus', 'hence', 'consequently', 'moreover',
+        'however', 'nevertheless', 'furthermore', 'additionally', 'ultimately'
     ];
 
     const allKeywords = [...arabicKeywords, ...englishKeywords];
 
+    let keywordCount = 0;
     allKeywords.forEach(keyword => {
-        if (sentence.toLowerCase().includes(keyword)) {
-            score += 1.5;
+        if (normalizedSentence.includes(keyword)) {
+            score += 2;
+            keywordCount++;
         }
     });
 
-    const questionWords = ['لماذا', 'كيف', 'متى', 'أين', 'ماذا', 'من', 'هل', 'why', 'how', 'when', 'where', 'what', 'who'];
+    if (keywordCount > 2) {
+        score += 1;
+    }
+
+    const questionWords = [
+        'لماذا', 'كيف', 'متي', 'اين', 'ماذا', 'من', 'هل', 'ما', 'ايش', 'وش',
+        'why', 'how', 'when', 'where', 'what', 'who', 'which'
+    ];
     questionWords.forEach(qWord => {
-        if (sentence.toLowerCase().includes(qWord)) {
-            score += 0.8;
+        if (normalizedSentence.includes(qWord)) {
+            score += 1;
+        }
+    });
+
+    const arabicConnectors = [
+        'لان', 'حيث', 'اذ', 'بما', 'نظرا', 'بسبب', 'نتيجه', 'من اجل',
+        'لكي', 'حتي', 'اذا', 'ان', 'علي', 'الرغم', 'رغم', 'مع'
+    ];
+    arabicConnectors.forEach(connector => {
+        if (normalizedSentence.includes(connector)) {
+            score += 0.5;
         }
     });
 
     const numbers = sentence.match(/\d+/g);
     if (numbers && numbers.length > 0) {
-        score += 0.5;
+        score += 0.8;
+    }
+
+    const arabicNumbers = sentence.match(/[٠-٩]+/g);
+    if (arabicNumbers && arabicNumbers.length > 0) {
+        score += 0.8;
+    }
+
+    const percentageOrCurrency = sentence.match(/[٪%$€£]/g);
+    if (percentageOrCurrency && percentageOrCurrency.length > 0) {
+        score += 0.6;
     }
 
     let wordFrequencyScore = 0;
+    const normalizedAllWords = allWords.map(w => normalizeArabicText(w.toLowerCase()));
     words.forEach(word => {
-        if (word.length > 4) {
-            const frequency = allWords.filter(w => w === word).length;
-            if (frequency > 2) {
-                wordFrequencyScore += 0.3;
+        if (word.length > 3) {
+            const frequency = normalizedAllWords.filter(w => w === word).length;
+            if (frequency >= 3 && frequency <= 8) {
+                wordFrequencyScore += 0.4;
             }
         }
     });
-    score += Math.min(wordFrequencyScore, 2);
+    score += Math.min(wordFrequencyScore, 3);
+
+    const hasQuotation = sentence.match(/["«»"]/g);
+    if (hasQuotation) {
+        score += 0.7;
+    }
+
+    const hasProperNoun = /[A-Z][a-z]+/.test(sentence);
+    if (hasProperNoun) {
+        score += 0.5;
+    }
+
+    const arabicVerbs = [
+        'يعتبر', 'يعد', 'تعد', 'تعتبر', 'يمثل', 'تمثل', 'يشكل', 'تشكل',
+        'يوضح', 'توضح', 'يبين', 'تبين', 'يفسر', 'تفسر', 'يشير', 'تشير'
+    ];
+    arabicVerbs.forEach(verb => {
+        if (normalizedSentence.includes(normalizeArabicText(verb))) {
+            score += 0.6;
+        }
+    });
 
     return score;
 }
