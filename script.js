@@ -52,17 +52,15 @@ function switchTab(tabName) {
 function initializeEventListeners() {
     // Image Input
     document.getElementById('imageInput').addEventListener('change', handleImageUpload);
-
     // PDF Input
     document.getElementById('pdfInput').addEventListener('change', handlePdfUpload);
-
     // Text Input
     const textInput = document.getElementById('textInput');
     textInput.addEventListener('input', updateTextStats);
-    
+
     // Keyboard shortcuts
     document.addEventListener('keydown', handleKeyboardShortcuts);
-    
+
     // Auto-save text
     textInput.addEventListener('blur', saveTextDraft);
 }
@@ -79,7 +77,7 @@ function handleKeyboardShortcuts(e) {
             summarizePdf();
         }
     }
-    
+
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
         e.preventDefault();
         saveCurrentWork();
@@ -92,24 +90,20 @@ async function startCamera(mode) {
         if (currentStream) {
             currentStream.getTracks().forEach(track => track.stop());
         }
-
         const constraints = {
-            video: { 
+            video: {
                 facingMode: mode,
                 width: { ideal: 1920 },
                 height: { ideal: 1080 }
             }
         };
-
         const stream = await navigator.mediaDevices.getUserMedia(constraints);
         currentStream = stream;
         const video = document.getElementById('camera');
         video.srcObject = stream;
-
         document.getElementById('cameraView').style.display = 'block';
         document.getElementById('imagePreview').style.display = 'none';
         document.getElementById('imageSummaryResult').style.display = 'none';
-
         showToast('تم تشغيل الكاميرا');
     } catch (error) {
         console.error('Camera error:', error);
@@ -123,21 +117,19 @@ function captureImage() {
     canvas.width = video.videoWidth;
     canvas.height = video.videoHeight;
     const ctx = canvas.getContext('2d');
-    
+
     // Draw video frame to canvas
     ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-    
+
     // Enhance image quality
     const enhancedCanvas = enhanceImageQuality(canvas);
     currentImage = enhancedCanvas.toDataURL('image/jpeg', 0.9);
-    
-    displayImage(currentImage);
 
+    displayImage(currentImage);
     if (currentStream) {
         currentStream.getTracks().forEach(track => track.stop());
         currentStream = null;
     }
-
     document.getElementById('cameraView').style.display = 'none';
     showToast('تم التقاط الصورة');
 }
@@ -146,16 +138,26 @@ function captureImage() {
 function enhanceImageQuality(canvas) {
     const enhancedCanvas = document.createElement('canvas');
     const ctx = enhancedCanvas.getContext('2d');
-    
+
     enhancedCanvas.width = canvas.width;
     enhancedCanvas.height = canvas.height;
-    
+
     // Apply basic enhancements
     ctx.drawImage(canvas, 0, 0);
-    
-    // You can add more image processing here
-    // like contrast adjustment, sharpening, etc.
-    
+
+    // Convert to grayscale and increase contrast
+    const imageData = ctx.getImageData(0, 0, enhancedCanvas.width, enhancedCanvas.height);
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+        const avg = (data[i] + data[i + 1] + data[i + 2]) / 3;
+        data[i] = avg < 128 ? 0 : 255; // Black or white
+        data[i + 1] = avg < 128 ? 0 : 255;
+        data[i + 2] = avg < 128 ? 0 : 255;
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+
     return enhancedCanvas;
 }
 
@@ -168,13 +170,14 @@ function handleImageUpload(e) {
             showToast('نوع الملف غير مدعوم. الرجاء تحميل صورة', 'error');
             return;
         }
-        
+
         // Validate file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
+        const maxSize = 10 * 1024 * 1024;
+        if (file.size > maxSize) {
             showToast('حجم الصورة كبير جداً. الحد الأقصى 10MB', 'error');
             return;
         }
-        
+
         const reader = new FileReader();
         reader.onload = (event) => {
             currentImage = event.target.result;
@@ -191,7 +194,7 @@ function handleImageUpload(e) {
 function displayImage(imageSrc) {
     const previewImg = document.getElementById('previewImg');
     previewImg.src = imageSrc;
-    
+
     // Add loading state
     previewImg.onload = () => {
         document.getElementById('imagePreview').style.display = 'block';
@@ -212,25 +215,25 @@ async function summarizeImage() {
     btn.innerHTML = '<span>جاري المعالجة...</span>';
 
     try {
-        // Extract text from image using OCR (Tesseract.js simulation)
+        // Extract text from image using Tesseract.js
         const extractedText = await extractTextFromImage(currentImage);
-        
+
         if (!extractedText || extractedText.trim().length < 10) {
+            document.getElementById('imageSummaryText').value = "لم يتم العثور على نص واضح في الصورة. حاول استخدام صورة أكثر وضوحًا.";
             throw new Error('لم يتم العثور على نص واضح في الصورة');
         }
-        
+
         const summaryLength = document.getElementById('imageSummaryLength').value;
         const summary = generateSmartSummary(extractedText, summaryLength);
-        
+
         document.getElementById('imageSummaryText').value = summary;
         document.getElementById('imageWordCount').textContent = `عدد الكلمات: ${countWords(summary)}`;
         document.getElementById('imageSummaryResult').style.display = 'block';
 
         // Save to history
         saveToHistory('صورة', currentImage, summary, extractedText);
-
         showToast('تم إنشاء التلخيص بنجاح!');
-        
+
     } catch (error) {
         console.error('Image summarization error:', error);
         showToast(error.message || 'فشل في معالجة الصورة', 'error');
@@ -241,32 +244,22 @@ async function summarizeImage() {
     }
 }
 
-// OCR Text Extraction (Simulated - In real implementation, use Tesseract.js)
+// OCR Text Extraction using Tesseract.js
 async function extractTextFromImage(imageData) {
-    // Simulate OCR processing
-    return new Promise((resolve, reject) => {
-        setTimeout(() => {
-            // This is a simulation - in real implementation, use Tesseract.js
-            const mockTexts = [
-                "هذا نص تم استخراجه من الصورة باستخدام تقنية التعرف الضوئي على الحروف. يحتوي النص على معلومات مهمة يمكن تلخيصها للحصول على الفكرة الرئيسية.",
-                "وثيقة مهمة تحتوي على نقاط أساسية متعددة. كل نقطة تحمل معلومات قيمة تحتاج إلى التركيز عليها في عملية التلخيص.",
-                "تقرير مفصل يشرح موضوعاً معيناً بشكل شامل. يحتوي على مقدمة وعرض وخاتمة مع أمثلة وتوضيحات متعددة.",
-                "مستند أكاديمي يحتوي على فرضيات ونتائج وتحليلات. النص منظم بشكل منهجي ويتبع أسلوباً علمياً دقيقاً.",
-                "مقال صحفي يناقش قضية معاصرة من عدة زوايا. يحتوي على آراء متعددة وتحليلات معمقة للوضع الحالي."
-            ];
-            
-            const randomText = mockTexts[Math.floor(Math.random() * mockTexts.length)];
-            
-            // Add some realistic variations
-            const variations = [
-                "\n\nتم تحليل الصورة وتم التعرف على النص بدقة عالية.",
-                "\n\nجودة النص المستخرج: ممتازة",
-                "\n\nملاحظة: تم تعديل التنسيق تلقائياً"
-            ];
-            
-            resolve(randomText + variations[Math.floor(Math.random() * variations.length)]);
-        }, 2000);
-    });
+    try {
+        const { createWorker } = Tesseract;
+        const worker = await createWorker({
+            logger: m => console.log(m),
+        });
+
+        const ret = await worker.recognize(imageData);
+        await worker.terminate();
+
+        return ret.data.text;
+    } catch (error) {
+        console.error("OCR Error:", error);
+        throw new Error("فشل في استخراج النص من الصورة");
+    }
 }
 
 // PDF Functions
@@ -274,11 +267,12 @@ function handlePdfUpload(e) {
     const file = e.target.files[0];
     if (file && file.type === 'application/pdf') {
         // Validate file size (max 10MB)
-        if (file.size > 10 * 1024 * 1024) {
+        const maxSize = 10 * 1024 * 1024;
+        if (file.size > maxSize) {
             showToast('حجم الملف كبير جداً. الحد الأقصى 10MB', 'error');
             return;
         }
-        
+
         currentPdf = file;
         document.getElementById('pdfFileName').textContent = file.name;
         document.getElementById('pdfFileSize').textContent = `${(file.size / 1024 / 1024).toFixed(2)} MB`;
@@ -305,19 +299,18 @@ async function summarizePdf() {
     try {
         // Simulate PDF text extraction
         const extractedText = await extractTextFromPdf(currentPdf);
-        
+
         const summaryLength = document.getElementById('pdfSummaryLength').value;
         const summary = generateSmartSummary(extractedText, summaryLength);
-        
+
         document.getElementById('pdfSummaryText').value = summary;
         document.getElementById('pdfWordCount').textContent = `عدد الكلمات: ${countWords(summary)}`;
         document.getElementById('pdfSummaryResult').style.display = 'block';
 
         // Save to history
         saveToHistory('PDF', currentPdf.name, summary, extractedText.substring(0, 200));
-
         showToast('تم إنشاء التلخيص بنجاح!');
-        
+
     } catch (error) {
         console.error('PDF summarization error:', error);
         showToast('فشل في معالجة ملف PDF', 'error');
@@ -334,23 +327,23 @@ async function extractTextFromPdf(pdfFile) {
         setTimeout(() => {
             const mockPdfContent = `
                 الفصل الأول: المقدمة
-                
+
                 هذا مستند PDF محاكى يحتوي على محتوى غني بالمعلومات. يتضمن عدة فصول وأقسام تغطي مواضيع متعددة.
-                
+
                 الفصل الثاني: الخلفية النظرية
-                
+
                 تشمل هذه الخلفية جميع الأساسيات النظرية اللازمة لفهم الموضوع الرئيسي. تحتوي على تعريفات ومفاهيم أساسية.
-                
+
                 الفصل الثالث: المنهجية
-                
+
                 تم اتباع منهجية علمية دقيقة في إعداد هذا المستند. شملت المنهجية عدة مراحل من التخطيط والتنفيذ.
-                
+
                 الفصل الرابع: النتائج
-                
+
                 تم الحصول على نتائج مهمة تشير إلى عدة استنتاجات رئيسية. كل نتيجة تدعم فرضية معينة.
-                
+
                 الفصل الخامس: الخاتمة
-                
+
                 خلاصة البحث والتوصيات المستقبلية. تم تقديم مقترحات للتطوير والتحسين.
             `;
             resolve(mockPdfContent);
@@ -365,10 +358,9 @@ function updateTextStats() {
     const charCount = text.length;
     const paragraphCount = countParagraphs(text);
     const sentenceCount = countSentences(text);
-
     document.getElementById('textWordCount').textContent = `الكلمات: ${wordCount}`;
     document.getElementById('textCharCount').textContent = `الأحرف: ${charCount}`;
-    
+
     // Update advanced stats if element exists
     const advancedStats = document.getElementById('textAdvancedStats');
     if (!advancedStats) {
@@ -403,7 +395,7 @@ function calculateComplexity(text) {
     const words = text.split(/\s+/).filter(word => word.length > 0);
     const longWords = words.filter(word => word.length > 6).length;
     const complexity = (longWords / words.length) * 100;
-    
+
     if (complexity < 10) return 'سهل';
     if (complexity < 20) return 'متوسط';
     if (complexity < 30) return 'صعب';
@@ -412,7 +404,7 @@ function calculateComplexity(text) {
 
 async function summarizeText() {
     const text = document.getElementById('textInput').value.trim();
-    
+
     if (!text) {
         showToast('الرجاء إدخال نص للتلخيص', 'error');
         return;
@@ -432,21 +424,20 @@ async function summarizeText() {
     try {
         const summaryLength = document.getElementById('textSummaryLength').value;
         const summary = generateSmartSummary(text, summaryLength);
-        
+
         document.getElementById('textSummaryText').value = summary;
         const wordCount = countWords(text);
         const summaryWordCount = countWords(summary);
         const ratio = Math.round((summaryWordCount / wordCount) * 100);
-        
+
         document.getElementById('textSummaryWordCount').textContent = `عدد الكلمات: ${summaryWordCount}`;
         document.getElementById('textSummaryRatio').textContent = `نسبة التلخيص: ${ratio}%`;
         document.getElementById('textSummaryResult').style.display = 'block';
 
         // Save to history
         saveToHistory('نص', text.substring(0, 100) + '...', summary);
-
         showToast('تم إنشاء التلخيص بنجاح!');
-        
+
     } catch (error) {
         console.error('Text summarization error:', error);
         showToast('فشل في إنشاء التلخيص', 'error');
@@ -461,7 +452,7 @@ async function summarizeText() {
 function generateSmartSummary(text, length) {
     const sentences = text.split(/[.!?]+/).filter(s => s.trim().length > 0);
     const words = text.split(/\s+/).filter(w => w.length > 0);
-    
+
     let targetLength;
     switch(length) {
         case 'short':
@@ -473,7 +464,7 @@ function generateSmartSummary(text, length) {
         default: // medium
             targetLength = Math.max(1, Math.floor(sentences.length * 0.5));
     }
-    
+
     // Simple algorithm to select important sentences
     const importantSentences = sentences
         .map((sentence, index) => ({
@@ -485,33 +476,33 @@ function generateSmartSummary(text, length) {
         .slice(0, targetLength)
         .sort((a, b) => a.index - b.index)
         .map(item => item.sentence.trim() + '.');
-    
+
     return importantSentences.join(' ') || 'تعذر إنشاء تلخيص للنص المقدم.';
 }
 
 function calculateSentenceImportance(sentence, allWords) {
     let score = 0;
     const words = sentence.split(/\s+/).filter(w => w.length > 0);
-    
+
     // Score based on sentence length (medium sentences are often important)
     const lengthScore = Math.min(words.length / 10, 2);
     score += lengthScore;
-    
+
     // Score based on position (first and last sentences are often important)
     score += 1;
-    
+
     // Score based on keywords
     const keywords = ['مهم', 'خلاصة', 'نتيجة', 'استنتاج', 'أهم', 'رئيسي', 'أساسي'];
     keywords.forEach(keyword => {
         if (sentence.includes(keyword)) score += 2;
     });
-    
+
     // Score based on question words (questions might be important)
     const questionWords = ['لماذا', 'كيف', 'متى', 'أين', 'ماذا'];
     questionWords.forEach(qWord => {
         if (sentence.includes(qWord)) score += 1;
     });
-    
+
     return score;
 }
 
@@ -523,7 +514,7 @@ function countWords(text) {
 function copyText(elementId) {
     const text = document.getElementById(elementId).value;
     navigator.clipboard.writeText(text);
-    
+
     const btn = event.target.closest('.btn');
     const originalHTML = btn.innerHTML;
     btn.innerHTML = `
@@ -532,9 +523,9 @@ function copyText(elementId) {
         </svg>
         تم النسخ
     `;
-    
+
     showToast('تم نسخ التلخيص');
-    
+
     setTimeout(() => {
         btn.innerHTML = originalHTML;
     }, 2000);
@@ -551,14 +542,12 @@ function saveToHistory(type, content, summary, extractedText = '') {
         timestamp: new Date().toISOString(),
         wordCount: countWords(summary)
     };
-
     historyData.unshift(historyItem);
-    
+
     // Keep only last 50 items
     if (historyData.length > 50) {
         historyData = historyData.slice(0, 50);
     }
-
     localStorage.setItem('summaryHistory', JSON.stringify(historyData));
     updateHistory();
 }
@@ -566,16 +555,13 @@ function saveToHistory(type, content, summary, extractedText = '') {
 function updateHistory() {
     const historyList = document.getElementById('historyList');
     const emptyHistory = document.getElementById('emptyHistory');
-
     if (historyData.length === 0) {
         historyList.style.display = 'none';
         emptyHistory.style.display = 'block';
         return;
     }
-
     historyList.style.display = 'block';
     emptyHistory.style.display = 'none';
-
     historyList.innerHTML = historyData.map(item => `
         <div class="history-item">
             <div class="history-header">
@@ -679,7 +665,7 @@ function loadSettings() {
         document.getElementById('textInput').value = savedText;
         updateTextStats();
     }
-    
+
     // Load preferences
     const preferences = JSON.parse(localStorage.getItem('userPreferences') || '{}');
     if (preferences.defaultSummaryLength) {
@@ -690,7 +676,7 @@ function loadSettings() {
 function saveCurrentWork() {
     const activeTab = document.querySelector('.tab-content.active').id;
     let workData = {};
-    
+
     switch(activeTab) {
         case 'text-tab':
             workData = {
@@ -718,7 +704,7 @@ function saveCurrentWork() {
             }
             break;
     }
-    
+
     if (workData.type) {
         localStorage.setItem('lastWork', JSON.stringify(workData));
         showToast('تم حفظ العمل الحالي');
@@ -732,7 +718,7 @@ function exportSummary() {
         showToast('لا يوجد تلخيص لتصديره', 'error');
         return;
     }
-    
+
     const blob = new Blob([summaryText], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -742,7 +728,7 @@ function exportSummary() {
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
-    
+
     showToast('تم تصدير التلخيص');
 }
 
@@ -754,7 +740,7 @@ function injectAdditionalStyles() {
             justify-content: flex-end;
             margin-bottom: 1rem;
         }
-        
+
         .text-advanced-stats {
             display: flex;
             gap: 1.5rem;
@@ -762,7 +748,7 @@ function injectAdditionalStyles() {
             color: var(--text-secondary);
             margin-top: 0.5rem;
         }
-        
+
         .quality-indicator {
             display: inline-block;
             padding: 0.25rem 0.5rem;
@@ -770,13 +756,13 @@ function injectAdditionalStyles() {
             font-size: 0.75rem;
             font-weight: 600;
         }
-        
+
         .quality-easy { background: rgba(34, 197, 94, 0.2); color: #22c55e; }
         .quality-medium { background: rgba(234, 179, 8, 0.2); color: var(--primary); }
         .quality-hard { background: rgba(239, 68, 68, 0.2); color: #ef4444; }
         .quality-complex { background: rgba(139, 92, 246, 0.2); color: #8b5cf6; }
     `;
-    
+
     const styleSheet = document.createElement('style');
     styleSheet.textContent = additionalStyles;
     document.head.appendChild(styleSheet);
@@ -784,3 +770,4 @@ function injectAdditionalStyles() {
 
 // Initialize additional styles
 document.addEventListener('DOMContentLoaded', injectAdditionalStyles);
+```"}
