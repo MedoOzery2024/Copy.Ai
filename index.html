@@ -3,15 +3,14 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Copy.Ai</title>
-    <meta name="description" content="أداة متطورة لتلخيص النصوص والصور والمستندات باستخدام الذكاء الاصطناعي">
+    <title>Copy.Ai - تلخيص واستخراج النصوص</title>
+    <meta name="description" content="أداة متطورة لاستخراج وتلخيص النصوص من الصور والمستندات">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-    <!-- Hero Section -->
     <header class="hero">
         <div class="container">
             <div class="hero-content">
@@ -25,35 +24,27 @@
                     </svg>
                 </div>
                 <h1 class="hero-title">Copy.Ai</h1>
-                <p class="hero-subtitle">تلخيص ذكي للنصوص والمستندات</p>
-                <p class="hero-description">حوّل النصوص الطويلة والصور والمستندات إلى ملخصات واضحة ومفيدة باستخدام تقنيات الذكاء الاصطناعي المتقدمة</p>
-                <div class="hero-badge">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
-                    </svg>
-                    <span>مدعوم بالذكاء الاصطناعي</span>
-                </div>
+                <p class="hero-subtitle">استخراج وتلخيص النصوص بذكاء</p>
+                <p class="hero-description">استخرج النصوص من الصور والمستندات وقم بتلخيصها تلقائياً بنسخة واحدة</p>
             </div>
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="container">
-        <!-- Tabs -->
         <div class="tabs">
             <button class="tab-btn active" data-tab="image">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
                     <circle cx="12" cy="13" r="4"></circle>
                 </svg>
-                تلخيص الصور
+                <span>استخراج من صورة</span>
             </button>
             <button class="tab-btn" data-tab="pdf">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                     <polyline points="14 2 14 8 20 8"></polyline>
                 </svg>
-                تلخيص PDF
+                <span>استخراج من PDF</span>
             </button>
             <button class="tab-btn" data-tab="text">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -61,18 +52,17 @@
                     <line x1="9" y1="20" x2="15" y2="20"></line>
                     <line x1="12" y1="4" x2="12" y2="20"></line>
                 </svg>
-                تلخيص نص
+                <span>تلخيص نص</span>
             </button>
             <button class="tab-btn" data-tab="history">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M3 3v5h5"></path>
                     <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path>
                 </svg>
-                السجل
+                <span>السجل</span>
             </button>
         </div>
 
-        <!-- Tab Content: Image -->
         <div class="tab-content active" id="image-tab">
             <div class="card">
                 <div class="controls">
@@ -100,7 +90,7 @@
                     </button>
                 </div>
                 <input type="file" id="imageInput" accept="image/*" style="display: none;">
-                
+
                 <div id="cameraView" style="display: none;">
                     <video id="camera" autoplay></video>
                     <button class="btn btn-primary" onclick="captureImage()" style="margin-top: 1rem; width: 100%;">التقاط الصورة</button>
@@ -108,37 +98,55 @@
 
                 <div id="imagePreview" style="display: none;">
                     <img id="previewImg" alt="Preview">
-                    <div class="select-group">
-                        <label>طول التلخيص:</label>
-                        <select id="imageSummaryLength">
-                            <option value="short">قصير</option>
-                            <option value="medium" selected>متوسط</option>
-                            <option value="long">مفصل</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" onclick="summarizeImage()" style="width: 100%;">تلخيص الصورة</button>
+                    <button class="btn btn-primary" onclick="extractFromImage()" style="width: 100%; margin-top: 1rem;">استخراج النص</button>
                 </div>
 
-                <div id="imageSummaryResult" style="display: none;">
-                    <div class="summary-header">
-                        <h3>التلخيص:</h3>
-                        <button class="btn btn-sm btn-outline" onclick="copyText('imageSummaryText')">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                            نسخ
-                        </button>
+                <div id="imageResult" style="display: none;">
+                    <div class="result-section">
+                        <div class="summary-header">
+                            <h3>النص المستخرج:</h3>
+                            <button class="btn btn-sm btn-outline" onclick="copyText('extractedImageText')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                نسخ
+                            </button>
+                        </div>
+                        <textarea id="extractedImageText" readonly></textarea>
+                        <div class="summary-stats">
+                            <span id="extractedImageWordCount"></span>
+                        </div>
                     </div>
-                    <textarea id="imageSummaryText" readonly></textarea>
-                    <div class="summary-stats">
-                        <span id="imageWordCount"></span>
+
+                    <div class="result-section">
+                        <div class="summary-header">
+                            <h3>الملخص:</h3>
+                            <div>
+                                <select id="imageSummaryLength" onchange="summarizeExtractedImage()">
+                                    <option value="short">قصير (25%)</option>
+                                    <option value="medium" selected>متوسط (50%)</option>
+                                    <option value="long">مفصل (75%)</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline" onclick="copyText('imageSummaryText')">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                    نسخ
+                                </button>
+                            </div>
+                        </div>
+                        <textarea id="imageSummaryText" readonly></textarea>
+                        <div class="summary-stats">
+                            <span id="imageSummaryWordCount"></span>
+                            <span id="imageSummaryRatio"></span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Tab Content: PDF -->
         <div class="tab-content" id="pdf-tab">
             <div class="card">
                 <div class="upload-area" onclick="document.getElementById('pdfInput').click()">
@@ -162,37 +170,55 @@
                             <p id="pdfFileSize"></p>
                         </div>
                     </div>
-                    <div class="select-group">
-                        <label>طول التلخيص:</label>
-                        <select id="pdfSummaryLength">
-                            <option value="short">قصير</option>
-                            <option value="medium" selected>متوسط</option>
-                            <option value="long">مفصل</option>
-                        </select>
-                    </div>
-                    <button class="btn btn-primary" onclick="summarizePdf()" style="width: 100%;">تلخيص PDF</button>
+                    <button class="btn btn-primary" onclick="extractFromPdf()" style="width: 100%;">استخراج النص</button>
                 </div>
 
-                <div id="pdfSummaryResult" style="display: none;">
-                    <div class="summary-header">
-                        <h3>التلخيص:</h3>
-                        <button class="btn btn-sm btn-outline" onclick="copyText('pdfSummaryText')">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                            نسخ
-                        </button>
+                <div id="pdfResult" style="display: none;">
+                    <div class="result-section">
+                        <div class="summary-header">
+                            <h3>النص المستخرج:</h3>
+                            <button class="btn btn-sm btn-outline" onclick="copyText('extractedPdfText')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                نسخ
+                            </button>
+                        </div>
+                        <textarea id="extractedPdfText" readonly></textarea>
+                        <div class="summary-stats">
+                            <span id="extractedPdfWordCount"></span>
+                        </div>
                     </div>
-                    <textarea id="pdfSummaryText" readonly></textarea>
-                    <div class="summary-stats">
-                        <span id="pdfWordCount"></span>
+
+                    <div class="result-section">
+                        <div class="summary-header">
+                            <h3>الملخص:</h3>
+                            <div>
+                                <select id="pdfSummaryLength" onchange="summarizeExtractedPdf()">
+                                    <option value="short">قصير (25%)</option>
+                                    <option value="medium" selected>متوسط (50%)</option>
+                                    <option value="long">مفصل (75%)</option>
+                                </select>
+                                <button class="btn btn-sm btn-outline" onclick="copyText('pdfSummaryText')">
+                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    </svg>
+                                    نسخ
+                                </button>
+                            </div>
+                        </div>
+                        <textarea id="pdfSummaryText" readonly></textarea>
+                        <div class="summary-stats">
+                            <span id="pdfSummaryWordCount"></span>
+                            <span id="pdfSummaryRatio"></span>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- Tab Content: Text -->
         <div class="tab-content" id="text-tab">
             <div class="card">
                 <label class="text-label">
@@ -238,29 +264,36 @@
             </div>
         </div>
 
-        <!-- Tab Content: History -->
         <div class="tab-content" id="history-tab">
+            <div class="history-actions">
+                <button class="btn btn-outline btn-sm" onclick="clearAllHistory()">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                        <polyline points="3 6 5 6 21 6"></polyline>
+                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                    </svg>
+                    مسح الكل
+                </button>
+            </div>
             <div id="historyList" class="history-list"></div>
             <div id="emptyHistory" class="empty-state">
                 <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                     <polyline points="14 2 14 8 20 8"></polyline>
                 </svg>
-                <h3>لا توجد تلخيصات بعد</h3>
-                <p>ابدأ بإنشاء تلخيص جديد لرؤيته هنا</p>
+                <h3>لا توجد سجلات بعد</h3>
+                <p>ابدأ باستخراج أو تلخيص نص لرؤيته هنا</p>
             </div>
         </div>
 
-        <!-- Features Section -->
         <div class="features">
             <div class="feature-card">
                 <div class="feature-icon">
                     <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"></path>
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
                     </svg>
                 </div>
-                <h3>ذكاء اصطناعي متقدم</h3>
-                <p>تقنية AI حديثة لتلخيص دقيق وسريع</p>
+                <h3>استخراج تلقائي</h3>
+                <p>استخرج النصوص من الصور و PDF بدقة عالية</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">
@@ -269,8 +302,8 @@
                         <polyline points="14 2 14 8 20 8"></polyline>
                     </svg>
                 </div>
-                <h3>صيغ متعددة</h3>
-                <p>دعم الصور، PDF، والنصوص المباشرة</p>
+                <h3>تلخيص ذكي</h3>
+                <p>اختصر النصوص الطويلة بنسب مختلفة</p>
             </div>
             <div class="feature-card">
                 <div class="feature-icon">
@@ -280,14 +313,18 @@
                     </svg>
                 </div>
                 <h3>حفظ السجل</h3>
-                <p>الوصول لجميع تلخيصاتك السابقة</p>
+                <p>الوصول لجميع عمليات الاستخراج والتلخيص</p>
             </div>
         </div>
     </main>
 
-    <!-- Toast Notification -->
     <div id="toast" class="toast"></div>
 
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
     <script src="script.js"></script>
 </body>
 </html>
