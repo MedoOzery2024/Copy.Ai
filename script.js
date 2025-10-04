@@ -151,7 +151,7 @@ async function extractFromImage() {
             }
         );
 
-        extractedImageText = result.data.text.trim();
+        extractedImageText = cleanExtractedText(result.data.text.trim());
 
         if (!extractedImageText || extractedImageText.length < 10) {
             throw new Error('لم يتم العثور على نص واضح في الصورة');
@@ -227,27 +227,71 @@ async function extractFromPdf() {
 
     try {
         const arrayBuffer = await currentPdf.arrayBuffer();
-        const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+        const loadingTask = pdfjsLib.getDocument({
+            data: arrayBuffer,
+            verbosity: 0,
+            isEvalSupported: false,
+            useSystemFonts: true
+        });
+
+        const pdf = await loadingTask.promise;
 
         let fullText = '';
+        let pagesProcessed = 0;
+
         for (let i = 1; i <= pdf.numPages; i++) {
-            const page = await pdf.getPage(i);
-            const textContent = await page.getTextContent();
-            const pageText = textContent.items.map(item => item.str).join(' ');
-            fullText += pageText + '\n\n';
+            try {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+
+                let pageText = '';
+                textContent.items.forEach((item, index) => {
+                    if (item.str) {
+                        const nextItem = textContent.items[index + 1];
+                        const cleanStr = item.str.replace(/[\u200B-\u200D\uFEFF]/g, '');
+                        pageText += cleanStr;
+
+                        if (nextItem && item.transform[5] !== nextItem.transform[5]) {
+                            pageText += '\n';
+                        } else if (nextItem && cleanStr.trim() !== '') {
+                            pageText += ' ';
+                        }
+                    }
+                });
+
+                const cleanedPageText = cleanExtractedText(pageText);
+                if (cleanedPageText.trim()) {
+                    fullText += cleanedPageText.trim() + '\n\n';
+                    pagesProcessed++;
+                }
+
+                btn.innerHTML = `<span>جاري المعالجة... صفحة ${i} من ${pdf.numPages}</span>`;
+
+            } catch (pageError) {
+                console.warn(`خطأ في صفحة ${i}:`, pageError);
+            }
         }
 
-        extractedPdfText = fullText.trim();
+        extractedPdfText = cleanExtractedText(fullText.trim());
 
-        if (!extractedPdfText || extractedPdfText.length < 10) {
-            throw new Error('لم يتم العثور على نص في ملف PDF');
+        if (!extractedPdfText || extractedPdfText.length < 5) {
+            throw new Error('لم يتم العثور على نص في ملف PDF. قد يكون الملف يحتوي على صور فقط أو محمي.');
+        }
+
+        if (pagesProcessed === 0) {
+            throw new Error('لم يتم معالجة أي صفحة. الملف قد يكون تالف أو محمي.');
         }
 
         document.getElementById('extractedPdfText').value = extractedPdfText;
-        document.getElementById('extractedPdfWordCount').textContent = `عدد الكلمات: ${countWords(extractedPdfText)}`;
+        document.getElementById('extractedPdfWordCount').textContent = `عدد الكلمات: ${countWords(extractedPdfText)} | عدد الصفحات: ${pagesProcessed}`;
 
-        navigator.clipboard.writeText(extractedPdfText);
-        showToast('تم استخراج ونسخ النص!');
+        try {
+            await navigator.clipboard.writeText(extractedPdfText);
+            showToast(`تم استخراج ونسخ النص من ${pagesProcessed} صفحة!`);
+        } catch (clipError) {
+            showToast(`تم استخراج النص من ${pagesProcessed} صفحة!`);
+        }
 
         summarizeExtractedPdf();
 
@@ -257,7 +301,18 @@ async function extractFromPdf() {
 
     } catch (error) {
         console.error('PDF extraction error:', error);
-        showToast('فشل في استخراج النص من PDF', 'error');
+
+        let errorMessage = 'فشل في استخراج النص من PDF';
+
+        if (error.message.includes('Invalid PDF')) {
+            errorMessage = 'ملف PDF غير صالح أو تالف';
+        } else if (error.message.includes('password')) {
+            errorMessage = 'ملف PDF محمي بكلمة مرور';
+        } else if (error.message.includes('صور فقط') || error.message.includes('محمي')) {
+            errorMessage = error.message;
+        }
+
+        showToast(errorMessage, 'error');
     } finally {
         btn.classList.remove('loading');
         btn.disabled = false;
@@ -290,7 +345,8 @@ function updateTextStats() {
 }
 
 function summarizeText() {
-    const text = document.getElementById('textInput').value.trim();
+    const rawText = document.getElementById('textInput').value.trim();
+    const text = cleanExtractedText(rawText);
 
     if (!text) {
         showToast('الرجاء إدخال نص للتلخيص', 'error');
@@ -318,6 +374,7 @@ function summarizeText() {
 }
 
 function generateSmartSummary(text, length) {
+    text = cleanExtractedText(text);
     text = normalizeArabicText(text);
 
     const sentences = text.split(/[.!?؟।]+/).filter(s => s.trim().length > 0);
@@ -371,6 +428,28 @@ function normalizeArabicText(text) {
         .replace(/ة/g, 'ه')
         .replace(/\s+/g, ' ')
         .trim();
+}
+
+function cleanExtractedText(text) {
+    let cleaned = text;
+
+    cleaned = cleaned.replace(/[\u200B-\u200D\uFEFF]/g, '');
+
+    cleaned = cleaned.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
+
+    cleaned = cleaned.replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFFa-zA-Z0-9\s.,;:!?؟،؛\-()[\]{}'"«»""\n\r%$€£٪٠-٩]/g, '');
+
+    cleaned = cleaned.replace(/([a-zA-Z])\1{3,}/g, '$1$1');
+
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+
+    cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
+
+    cleaned = cleaned.replace(/([.!?؟]){2,}/g, '$1');
+
+    cleaned = cleaned.trim();
+
+    return cleaned;
 }
 
 function calculateSentenceScore(sentence, allSentences, allWords, position) {
