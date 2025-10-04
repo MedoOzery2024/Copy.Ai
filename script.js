@@ -437,15 +437,40 @@ function cleanExtractedText(text) {
 
     cleaned = cleaned.replace(/[\x00-\x1F\x7F-\x9F]/g, '');
 
-    cleaned = cleaned.replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFFa-zA-Z0-9\s.,;:!?؟،؛\-()[\]{}'"«»""\n\r%$€£٪٠-٩]/g, '');
+    cleaned = cleaned.replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFFa-zA-Z0-9\s.,;:!?؟،؛\-()[\]{}'"«»""\n\r%$€£٪٠-٩]/g, ' ');
 
-    cleaned = cleaned.replace(/([a-zA-Z])\1{3,}/g, '$1$1');
+    cleaned = cleaned.replace(/\b[a-zA-Z]{1,2}\b(?!\s*[a-zA-Z])/g, ' ');
+
+    cleaned = cleaned.replace(/\b[A-Z]{2,}\b/g, ' ');
+
+    cleaned = cleaned.replace(/([a-zA-Z])\1{2,}/g, ' ');
+
+    cleaned = cleaned.replace(/[a-zA-Z]+[0-9]+[a-zA-Z]*/g, ' ');
+
+    cleaned = cleaned.replace(/\b[a-z]+[A-Z]+[a-z]*\b/g, ' ');
+
+    cleaned = cleaned.replace(/(\d+\.?\d*)\s*([a-zA-Z]{1,3})\s*(\d+)/g, '$1 $3');
 
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
 
     cleaned = cleaned.replace(/[ \t]{2,}/g, ' ');
 
-    cleaned = cleaned.replace(/([.!?؟]){2,}/g, '$1');
+    cleaned = cleaned.replace(/([.!?؟،]){2,}/g, '$1');
+
+    const lines = cleaned.split('\n');
+    cleaned = lines.filter(line => {
+        const arabicChars = (line.match(/[\u0600-\u06FF]/g) || []).length;
+        const englishChars = (line.match(/[a-zA-Z]/g) || []).length;
+        const totalChars = line.replace(/\s/g, '').length;
+
+        if (totalChars === 0) return false;
+
+        if (englishChars > arabicChars && englishChars > totalChars * 0.5) {
+            return false;
+        }
+
+        return true;
+    }).join('\n');
 
     cleaned = cleaned.trim();
 
