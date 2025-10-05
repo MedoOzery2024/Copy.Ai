@@ -239,10 +239,14 @@ async function extractFromPdf() {
 
         let fullText = '';
         let pagesProcessed = 0;
+        let imagesProcessed = 0;
 
         for (let i = 1; i <= pdf.numPages; i++) {
             try {
                 const page = await pdf.getPage(i);
+
+                btn.innerHTML = `<span>معالجة النص... صفحة ${i} من ${pdf.numPages}</span>`;
+
                 const textContent = await page.getTextContent();
 
                 let pageText = '';
@@ -263,10 +267,50 @@ async function extractFromPdf() {
                 const cleanedPageText = cleanExtractedText(pageText);
                 if (cleanedPageText.trim()) {
                     fullText += cleanedPageText.trim() + '\n\n';
-                    pagesProcessed++;
                 }
 
-                btn.innerHTML = `<span>جاري المعالجة... صفحة ${i} من ${pdf.numPages}</span>`;
+                try {
+                    btn.innerHTML = `<span>استخراج الصور... صفحة ${i} من ${pdf.numPages}</span>`;
+
+                    const viewport = page.getViewport({ scale: 2.0 });
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    await page.render({
+                        canvasContext: context,
+                        viewport: viewport
+                    }).promise;
+
+                    const imageBlob = await new Promise(resolve => {
+                        canvas.toBlob(resolve, 'image/png');
+                    });
+
+                    btn.innerHTML = `<span>استخراج النص من الصور... صفحة ${i} من ${pdf.numPages}</span>`;
+
+                    const ocrResult = await Tesseract.recognize(
+                        imageBlob,
+                        'ara+eng',
+                        {
+                            logger: m => {
+                                if (m.status === 'recognizing text') {
+                                    btn.innerHTML = `<span>OCR صفحة ${i}... ${Math.round(m.progress * 100)}%</span>`;
+                                }
+                            }
+                        }
+                    );
+
+                    const ocrText = cleanExtractedText(ocrResult.data.text.trim());
+                    if (ocrText && ocrText.length > 20) {
+                        fullText += ocrText + '\n\n';
+                        imagesProcessed++;
+                    }
+                } catch (ocrError) {
+                    console.warn(`فشل OCR في صفحة ${i}:`, ocrError);
+                }
+
+                pagesProcessed++;
 
             } catch (pageError) {
                 console.warn(`خطأ في صفحة ${i}:`, pageError);
@@ -276,7 +320,7 @@ async function extractFromPdf() {
         extractedPdfText = cleanExtractedText(fullText.trim());
 
         if (!extractedPdfText || extractedPdfText.length < 5) {
-            throw new Error('لم يتم العثور على نص في ملف PDF. قد يكون الملف يحتوي على صور فقط أو محمي.');
+            throw new Error('لم يتم العثور على نص في ملف PDF. الملف قد يكون محمي أو لا يحتوي على نصوص.');
         }
 
         if (pagesProcessed === 0) {
@@ -284,13 +328,18 @@ async function extractFromPdf() {
         }
 
         document.getElementById('extractedPdfText').value = extractedPdfText;
-        document.getElementById('extractedPdfWordCount').textContent = `عدد الكلمات: ${countWords(extractedPdfText)} | عدد الصفحات: ${pagesProcessed}`;
+
+        let statsText = `عدد الكلمات: ${countWords(extractedPdfText)} | الصفحات: ${pagesProcessed}`;
+        if (imagesProcessed > 0) {
+            statsText += ` | صور معالجة: ${imagesProcessed}`;
+        }
+        document.getElementById('extractedPdfWordCount').textContent = statsText;
 
         try {
             await navigator.clipboard.writeText(extractedPdfText);
-            showToast(`تم استخراج ونسخ النص من ${pagesProcessed} صفحة!`);
+            showToast(`تم استخراج ونسخ النص من ${pagesProcessed} صفحة${imagesProcessed > 0 ? ` و${imagesProcessed} صور` : ''}!`);
         } catch (clipError) {
-            showToast(`تم استخراج النص من ${pagesProcessed} صفحة!`);
+            showToast(`تم استخراج النص من ${pagesProcessed} صفحة${imagesProcessed > 0 ? ` و${imagesProcessed} صور` : ''}!`);
         }
 
         summarizeExtractedPdf();
@@ -307,8 +356,8 @@ async function extractFromPdf() {
         if (error.message.includes('Invalid PDF')) {
             errorMessage = 'ملف PDF غير صالح أو تالف';
         } else if (error.message.includes('password')) {
-            errorMessage = 'ملف PDF محمي بكلمة مرور';
-        } else if (error.message.includes('صور فقط') || error.message.includes('محمي')) {
+            errorMessage = 'ملف PDF محمي بكلمة مرور - غير مدعوم';
+        } else if (error.message.includes('محمي')) {
             errorMessage = error.message;
         }
 
@@ -757,4 +806,338 @@ function clearAllHistory() {
         updateHistory();
         showToast('تم مسح السجل بالكامل');
     }
+}
+
+let pdfImages = [];
+let pdfCameraStream = null;
+let generatedPdfBlob = null;
+
+function startCameraForPdf(mode) {
+    const cameraView = document.getElementById('cameraPdfView');
+    const video = document.getElementById('cameraPdf');
+
+    if (pdfCameraStream) {
+        pdfCameraStream.getTracks().forEach(track => track.stop());
+    }
+
+    navigator.mediaDevices.getUserMedia({
+        video: { facingMode: mode },
+        audio: false
+    })
+    .then(stream => {
+        pdfCameraStream = stream;
+        video.srcObject = stream;
+        cameraView.style.display = 'block';
+        document.getElementById('pdfImagesPreview').style.display = 'none';
+    })
+    .catch(err => {
+        console.error('Camera error:', err);
+        showToast('فشل في الوصول للكاميرا', 'error');
+    });
+}
+
+function capturePdfImage() {
+    const video = document.getElementById('cameraPdf');
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+
+    canvas.toBlob(blob => {
+        pdfImages.push(blob);
+        displayPdfImages();
+        showToast('تم التقاط الصورة!');
+
+        if (pdfCameraStream) {
+            pdfCameraStream.getTracks().forEach(track => track.stop());
+        }
+        document.getElementById('cameraPdfView').style.display = 'none';
+    }, 'image/jpeg', 0.9);
+}
+
+document.getElementById('pdfImagesInput').addEventListener('change', function(e) {
+    const files = Array.from(e.target.files);
+    pdfImages = pdfImages.concat(files);
+    displayPdfImages();
+    showToast(`تم إضافة ${files.length} صورة`);
+});
+
+function displayPdfImages() {
+    const grid = document.getElementById('imagesGrid');
+    grid.innerHTML = '';
+
+    pdfImages.forEach((img, index) => {
+        const div = document.createElement('div');
+        div.className = 'image-item';
+
+        const imgElement = document.createElement('img');
+        const url = URL.createObjectURL(img);
+        imgElement.src = url;
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'image-item-remove';
+        removeBtn.innerHTML = '✕';
+        removeBtn.onclick = () => removePdfImage(index);
+
+        const number = document.createElement('div');
+        number.className = 'image-item-number';
+        number.textContent = index + 1;
+
+        div.appendChild(imgElement);
+        div.appendChild(removeBtn);
+        div.appendChild(number);
+        grid.appendChild(div);
+    });
+
+    document.getElementById('pdfImagesPreview').style.display = pdfImages.length > 0 ? 'block' : 'none';
+}
+
+function removePdfImage(index) {
+    pdfImages.splice(index, 1);
+    displayPdfImages();
+    showToast('تم حذف الصورة');
+}
+
+function clearPdfImages() {
+    if (confirm('هل تريد مسح كل الصور؟')) {
+        pdfImages = [];
+        displayPdfImages();
+        showToast('تم مسح كل الصور');
+    }
+}
+
+async function generatePdfFromImages() {
+    if (pdfImages.length === 0) {
+        showToast('الرجاء إضافة صور أولاً', 'error');
+        return;
+    }
+
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.classList.add('loading');
+    btn.disabled = true;
+    btn.innerHTML = '<span>جاري إنشاء PDF...</span>';
+
+    try {
+        const { jsPDF } = window.jspdf;
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+
+        for (let i = 0; i < pdfImages.length; i++) {
+            const img = pdfImages[i];
+            const url = URL.createObjectURL(img);
+
+            const imgData = await new Promise((resolve) => {
+                const image = new Image();
+                image.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = image.width;
+                    canvas.height = image.height;
+                    canvas.getContext('2d').drawImage(image, 0, 0);
+                    resolve(canvas.toDataURL('image/jpeg', 0.9));
+                };
+                image.src = url;
+            });
+
+            if (i > 0) pdf.addPage();
+
+            const imgProps = pdf.getImageProperties(imgData);
+            const pdfWidth = pdf.internal.pageSize.getWidth();
+            const pdfHeight = pdf.internal.pageSize.getHeight();
+            const imgRatio = imgProps.width / imgProps.height;
+            const pageRatio = pdfWidth / pdfHeight;
+
+            let finalWidth, finalHeight, x, y;
+
+            if (imgRatio > pageRatio) {
+                finalWidth = pdfWidth;
+                finalHeight = pdfWidth / imgRatio;
+                x = 0;
+                y = (pdfHeight - finalHeight) / 2;
+            } else {
+                finalHeight = pdfHeight;
+                finalWidth = pdfHeight * imgRatio;
+                x = (pdfWidth - finalWidth) / 2;
+                y = 0;
+            }
+
+            pdf.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight);
+        }
+
+        generatedPdfBlob = pdf.output('blob');
+        const size = formatFileSize(generatedPdfBlob.size);
+        const name = `صور_${new Date().getTime()}.pdf`;
+
+        document.getElementById('generatedPdfName').textContent = name;
+        document.getElementById('generatedPdfSize').textContent = size;
+        document.getElementById('pdfImagesPreview').style.display = 'none';
+        document.getElementById('pdfGeneratedResult').style.display = 'block';
+
+        showToast(`تم إنشاء PDF من ${pdfImages.length} صورة!`);
+
+    } catch (error) {
+        console.error('PDF generation error:', error);
+        showToast('فشل في إنشاء PDF', 'error');
+    } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+function downloadGeneratedPdf() {
+    if (!generatedPdfBlob) {
+        showToast('لا يوجد PDF لتنزيله', 'error');
+        return;
+    }
+
+    const url = URL.createObjectURL(generatedPdfBlob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `صور_${new Date().getTime()}.pdf`;
+    a.click();
+    URL.revokeObjectURL(url);
+    showToast('تم تنزيل PDF!');
+}
+
+async function copyGeneratedPdf() {
+    if (!generatedPdfBlob) {
+        showToast('لا يوجد PDF لنسخه', 'error');
+        return;
+    }
+
+    try {
+        const file = new File([generatedPdfBlob], 'document.pdf', { type: 'application/pdf' });
+        await navigator.clipboard.write([
+            new ClipboardItem({ 'application/pdf': file })
+        ]);
+        showToast('تم نسخ PDF!');
+    } catch (error) {
+        showToast('فشل في نسخ PDF', 'error');
+    }
+}
+
+function clearGeneratedPdf() {
+    if (confirm('هل تريد مسح PDF من السجل؟')) {
+        generatedPdfBlob = null;
+        pdfImages = [];
+        document.getElementById('pdfGeneratedResult').style.display = 'none';
+        document.getElementById('imagesGrid').innerHTML = '';
+        showToast('تم مسح PDF');
+    }
+}
+
+let translateCurrentFile = null;
+
+document.getElementById('translateFileInput').addEventListener('change', function(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    translateCurrentFile = file;
+
+    document.getElementById('translateFileName').textContent = file.name;
+    document.getElementById('translateFileSize').textContent = formatFileSize(file.size);
+    document.getElementById('translatePreview').style.display = 'block';
+    document.getElementById('translateResult').style.display = 'none';
+});
+
+async function translateFile() {
+    if (!translateCurrentFile) {
+        showToast('الرجاء تحميل ملف أولاً', 'error');
+        return;
+    }
+
+    const btn = event.target;
+    const originalText = btn.innerHTML;
+    btn.classList.add('loading');
+    btn.disabled = true;
+    btn.innerHTML = '<span>جاري الترجمة...</span>';
+
+    try {
+        const sourceLang = document.getElementById('sourceLanguage').value;
+        const targetLang = document.getElementById('targetLanguage').value;
+
+        let extractedText = '';
+
+        if (translateCurrentFile.type.startsWith('image/')) {
+            const result = await Tesseract.recognize(
+                translateCurrentFile,
+                sourceLang === 'auto' ? 'ara+eng' : sourceLang,
+                {
+                    logger: m => {
+                        if (m.status === 'recognizing text') {
+                            btn.innerHTML = `<span>جاري استخراج النص... ${Math.round(m.progress * 100)}%</span>`;
+                        }
+                    }
+                }
+            );
+            extractedText = cleanExtractedText(result.data.text.trim());
+        } else if (translateCurrentFile.type === 'application/pdf') {
+            const arrayBuffer = await translateCurrentFile.arrayBuffer();
+            const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+
+            let fullText = '';
+            for (let i = 1; i <= pdf.numPages; i++) {
+                const page = await pdf.getPage(i);
+                const textContent = await page.getTextContent();
+                const pageText = textContent.items.map(item => item.str).join(' ');
+                fullText += pageText + '\n\n';
+
+                btn.innerHTML = `<span>جاري استخراج النص... صفحة ${i} من ${pdf.numPages}</span>`;
+            }
+            extractedText = cleanExtractedText(fullText.trim());
+        }
+
+        if (!extractedText || extractedText.length < 5) {
+            throw new Error('لم يتم العثور على نص في الملف');
+        }
+
+        btn.innerHTML = '<span>جاري الترجمة...</span>';
+
+        const translatedText = await translateText(extractedText, targetLang);
+
+        document.getElementById('originalTranslateText').value = extractedText;
+        document.getElementById('translatedText').value = translatedText;
+        document.getElementById('translateResult').style.display = 'block';
+
+        showToast('تم الترجمة بنجاح!');
+
+    } catch (error) {
+        console.error('Translation error:', error);
+        showToast('فشل في ترجمة الملف', 'error');
+    } finally {
+        btn.classList.remove('loading');
+        btn.disabled = false;
+        btn.innerHTML = originalText;
+    }
+}
+
+async function translateText(text, targetLang) {
+    const sentences = text.split(/[.!?؟।\n]+/).filter(s => s.trim().length > 0);
+    const translated = [];
+
+    for (let sentence of sentences) {
+        const trimmed = sentence.trim();
+        if (trimmed.length > 0) {
+            try {
+                const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(trimmed)}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (data && data[0] && data[0][0] && data[0][0][0]) {
+                    translated.push(data[0][0][0]);
+                } else {
+                    translated.push(trimmed);
+                }
+            } catch (error) {
+                console.error('Translation error for sentence:', error);
+                translated.push(trimmed);
+            }
+        }
+    }
+
+    return translated.join('. ');
 }
