@@ -25,7 +25,7 @@
                 </div>
                 <h1 class="hero-title">Copy.Ai</h1>
                 <p class="hero-subtitle">استخراج وتلخيص النصوص بذكاء</p>
-                <p class="hero-description">استخرج النصوص من الصور والمستندات.مبرمج الموقع: محمود محمد محمود أبو الفتوح أحمد العزيري.</p>
+                <p class="hero-description">استخرج النصوص من الصور والمستندات وقم بتلخيصها تلقائياً بنسخة واحدة</p>
             </div>
         </div>
     </header>
@@ -53,6 +53,25 @@
                     <line x1="12" y1="4" x2="12" y2="20"></line>
                 </svg>
                 <span>تلخيص نص</span>
+            </button>
+            <button class="tab-btn" data-tab="img2pdf">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
+                <span>صور إلى PDF</span>
+            </button>
+            <button class="tab-btn" data-tab="translate">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="m5 8 6 6"></path>
+                    <path d="m4 14 6-6 2-3"></path>
+                    <path d="M2 5h12"></path>
+                    <path d="M7 2h1"></path>
+                    <path d="m22 22-5-10-5 10"></path>
+                    <path d="M14 18h6"></path>
+                </svg>
+                <span>ترجمة</span>
             </button>
             <button class="tab-btn" data-tab="history">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -264,6 +283,215 @@
             </div>
         </div>
 
+        <div class="tab-content" id="img2pdf-tab">
+            <div class="card">
+                <h2 style="margin-bottom: 1.5rem;">تحويل الصور إلى PDF</h2>
+
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="startCameraForPdf('user')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        الكاميرا الأمامية
+                    </button>
+                    <button class="btn btn-primary" onclick="startCameraForPdf('environment')">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
+                            <circle cx="12" cy="13" r="4"></circle>
+                        </svg>
+                        الكاميرا الخلفية
+                    </button>
+                    <button class="btn btn-outline" onclick="document.getElementById('pdfImagesInput').click()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        تحميل صور
+                    </button>
+                </div>
+                <input type="file" id="pdfImagesInput" accept="image/*" multiple style="display: none;">
+
+                <div id="cameraPdfView" style="display: none;">
+                    <video id="cameraPdf" autoplay></video>
+                    <button class="btn btn-primary" onclick="capturePdfImage()" style="margin-top: 1rem; width: 100%;">التقاط الصورة</button>
+                </div>
+
+                <div id="pdfImagesPreview" style="display: none;">
+                    <div class="images-grid" id="imagesGrid"></div>
+                    <div class="controls" style="margin-top: 1rem;">
+                        <button class="btn btn-primary" onclick="generatePdfFromImages()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            إنشاء PDF
+                        </button>
+                        <button class="btn btn-outline" onclick="clearPdfImages()">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <polyline points="3 6 5 6 21 6"></polyline>
+                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                            </svg>
+                            مسح الكل
+                        </button>
+                    </div>
+                </div>
+
+                <div id="pdfGeneratedResult" style="display: none;">
+                    <div class="result-section">
+                        <div class="summary-header">
+                            <h3>ملف PDF تم إنشاؤه بنجاح!</h3>
+                        </div>
+                        <div class="pdf-info">
+                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                <polyline points="14 2 14 8 20 8"></polyline>
+                            </svg>
+                            <p id="generatedPdfName"></p>
+                            <p id="generatedPdfSize"></p>
+                        </div>
+                        <div class="controls">
+                            <button class="btn btn-primary" onclick="downloadGeneratedPdf()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                تنزيل PDF
+                            </button>
+                            <button class="btn btn-outline" onclick="copyGeneratedPdf()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                نسخ PDF
+                            </button>
+                            <button class="btn btn-outline" onclick="clearGeneratedPdf()">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <polyline points="3 6 5 6 21 6"></polyline>
+                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                                </svg>
+                                مسح من السجل
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="tab-content" id="translate-tab">
+            <div class="card">
+                <h2 style="margin-bottom: 1.5rem;">ترجمة الصور والملفات</h2>
+
+                <div class="select-group">
+                    <label>نوع الملف:</label>
+                    <select id="translateFileType">
+                        <option value="image">صورة</option>
+                        <option value="pdf">ملف PDF</option>
+                    </select>
+                </div>
+
+                <div class="controls">
+                    <button class="btn btn-primary" onclick="document.getElementById('translateFileInput').click()">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                            <polyline points="17 8 12 3 7 8"></polyline>
+                            <line x1="12" y1="3" x2="12" y2="15"></line>
+                        </svg>
+                        تحميل ملف
+                    </button>
+                </div>
+                <input type="file" id="translateFileInput" accept="image/*,application/pdf" style="display: none;">
+
+                <div id="translatePreview" style="display: none;">
+                    <div class="file-info">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <div>
+                            <p id="translateFileName"></p>
+                            <p id="translateFileSize"></p>
+                        </div>
+                    </div>
+
+                    <div class="select-group">
+                        <label>اللغة المصدر:</label>
+                        <select id="sourceLanguage">
+                            <option value="auto">اكتشاف تلقائي</option>
+                            <option value="ara">العربية</option>
+                            <option value="eng">الإنجليزية</option>
+                            <option value="fra">الفرنسية</option>
+                            <option value="spa">الإسبانية</option>
+                            <option value="deu">الألمانية</option>
+                            <option value="ita">الإيطالية</option>
+                            <option value="por">البرتغالية</option>
+                            <option value="rus">الروسية</option>
+                            <option value="jpn">اليابانية</option>
+                            <option value="chi_sim">الصينية المبسطة</option>
+                            <option value="kor">الكورية</option>
+                            <option value="tur">التركية</option>
+                            <option value="hin">الهندية</option>
+                            <option value="urd">الأوردو</option>
+                        </select>
+                    </div>
+
+                    <div class="select-group">
+                        <label>اللغة المستهدفة:</label>
+                        <select id="targetLanguage">
+                            <option value="ar">العربية</option>
+                            <option value="en" selected>الإنجليزية</option>
+                            <option value="fr">الفرنسية</option>
+                            <option value="es">الإسبانية</option>
+                            <option value="de">الألمانية</option>
+                            <option value="it">الإيطالية</option>
+                            <option value="pt">البرتغالية</option>
+                            <option value="ru">الروسية</option>
+                            <option value="ja">اليابانية</option>
+                            <option value="zh">الصينية</option>
+                            <option value="ko">الكورية</option>
+                            <option value="tr">التركية</option>
+                            <option value="hi">الهندية</option>
+                            <option value="ur">الأوردو</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="translateFile()" style="width: 100%;">ترجمة الملف</button>
+                </div>
+
+                <div id="translateResult" style="display: none;">
+                    <div class="result-section">
+                        <div class="summary-header">
+                            <h3>النص الأصلي:</h3>
+                            <button class="btn btn-sm btn-outline" onclick="copyText('originalTranslateText')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                نسخ
+                            </button>
+                        </div>
+                        <textarea id="originalTranslateText" readonly></textarea>
+                    </div>
+
+                    <div class="result-section">
+                        <div class="summary-header">
+                            <h3>النص المترجم:</h3>
+                            <button class="btn btn-sm btn-outline" onclick="copyText('translatedText')">
+                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                                نسخ
+                            </button>
+                        </div>
+                        <textarea id="translatedText" readonly></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
         <div class="tab-content" id="history-tab">
             <div class="history-actions">
                 <button class="btn btn-outline btn-sm" onclick="clearAllHistory()">
@@ -322,6 +550,7 @@
 
     <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
     <script>
         pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     </script>
