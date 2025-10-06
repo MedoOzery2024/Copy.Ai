@@ -25,7 +25,7 @@
                 </div>
                 <h1 class="hero-title">Copy.Ai</h1>
                 <p class="hero-subtitle">استخراج وتلخيص النصوص بذكاء</p>
-                <p class="hero-description">استخرج النصوص من الصور والمستندات.مبرمج الموقع:محمود محمد محمود أبو الفتوح أحمدالعزيري</p>
+                <p class="hero-description">استخرج النصوص من الصور والمستندات.مبرمج الموقع:محمود محمد محمود أبو الفتوح أحمد العزيري</p>
             </div>
         </div>
     </header>
@@ -84,6 +84,17 @@
 
         <div class="tab-content active" id="image-tab">
             <div class="card">
+                <div class="select-group">
+                    <label>اللغة المستهدفة للاستخراج:</label>
+                    <select id="imageExtractLanguage">
+                        <option value="ara+eng">العربية والإنجليزية</option>
+                        <option value="ara">العربية فقط</option>
+                        <option value="eng">الإنجليزية فقط</option>
+                        <option value="ara+eng+fra">عربي + إنجليزي + فرنسي</option>
+                        <option value="all">جميع اللغات</option>
+                    </select>
+                </div>
+
                 <div class="controls">
                     <button class="btn btn-primary" onclick="startCamera('user')">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -320,6 +331,26 @@
 
                 <div id="pdfImagesPreview" style="display: none;">
                     <div class="images-grid" id="imagesGrid"></div>
+
+                    <div class="select-group" style="margin-top: 1rem;">
+                        <label>جودة الصور في PDF:</label>
+                        <select id="pdfQuality">
+                            <option value="0.7">عادية (حجم أصغر)</option>
+                            <option value="0.85" selected>جيدة (موصى به)</option>
+                            <option value="0.95">عالية (حجم أكبر)</option>
+                        </select>
+                    </div>
+
+                    <div class="select-group">
+                        <label>حجم الصفحة:</label>
+                        <select id="pdfPageSize">
+                            <option value="a4" selected>A4</option>
+                            <option value="a3">A3</option>
+                            <option value="letter">Letter</option>
+                            <option value="legal">Legal</option>
+                        </select>
+                    </div>
+
                     <div class="controls" style="margin-top: 1rem;">
                         <button class="btn btn-primary" onclick="generatePdfFromImages()">
                             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -348,8 +379,11 @@
                                 <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                                 <polyline points="14 2 14 8 20 8"></polyline>
                             </svg>
-                            <p id="generatedPdfName"></p>
-                            <p id="generatedPdfSize"></p>
+                            <div style="width: 100%;">
+                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">اسم الملف:</label>
+                                <input type="text" id="generatedPdfNameInput" placeholder="ادخل اسم الملف" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--bg-card); color: var(--text-primary); margin-bottom: 0.5rem;">
+                                <p id="generatedPdfSize"></p>
+                            </div>
                         </div>
                         <div class="controls">
                             <button class="btn btn-primary" onclick="downloadGeneratedPdf()">
@@ -360,12 +394,12 @@
                                 </svg>
                                 تنزيل PDF
                             </button>
-                            <button class="btn btn-outline" onclick="copyGeneratedPdf()">
+                            <button class="btn btn-outline" onclick="loadGeneratedPdfForExtraction()">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                                    <polyline points="14 2 14 8 20 8"></polyline>
                                 </svg>
-                                نسخ PDF
+                                استخراج النص من PDF
                             </button>
                             <button class="btn btn-outline" onclick="clearGeneratedPdf()">
                                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
