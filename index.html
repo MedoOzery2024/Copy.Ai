@@ -1,593 +1,179 @@
 <!DOCTYPE html>
 <html lang="ar" dir="rtl">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Copy.Ai - تلخيص واستخراج النصوص</title>
-    <meta name="description" content="أداة متطورة لاستخراج وتلخيص النصوص من الصور والمستندات">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;900&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Copy.Ai - تحويل، استخراج وتلخيص</title>
+  <link rel="stylesheet" href="style.css">
+  <!-- CDN Libraries -->
+  <!-- Tesseract (OCR) -->
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
+  <!-- pdf.js (لتحويل صفحات PDF إلى canvas) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
+  <!-- jsPDF (تحويل صور إلى PDF سريع) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+  <!-- pdf-lib (إعادة بناء / ضغط PDF) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
+  <!-- docx (إنشاء ملفات .docx) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.2.0/docx.umd.js"></script>
+  <!-- SheetJS XLSX (إنشاء Excel) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <!-- PptxGenJS (إنشاء PowerPoint) -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.8.0/pptxgen.bundle.js"></script>
 </head>
 <body>
-    <header class="hero">
-        <div class="container">
-            <div class="hero-content">
-                <div class="hero-icon">
-                    <svg width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                        <line x1="16" y1="13" x2="8" y2="13"></line>
-                        <line x1="16" y1="17" x2="8" y2="17"></line>
-                        <polyline points="10 9 9 9 8 9"></polyline>
-                    </svg>
-                </div>
-                <h1 class="hero-title">Copy.Ai</h1>
-                <p class="hero-subtitle">استخراج وتلخيص النصوص بذكاء</p>
-                <p class="hero-description">استخرج النصوص من الصور والمستندات.مبرمج الموقع:محمود محمد محمود أبو الفتوح أحمد العزيري</p>
-            </div>
-        </div>
-    </header>
+  <header>
+    <div class="logo">🧠 <span>Copy.Ai</span></div>
+    <div class="header-right">
+      <div class="author">Developed by: <strong>محمود محمد محمود أبو الفتوح أحمد العزيري</strong></div>
+      <button id="theme-toggle">🌙</button>
+    </div>
+  </header>
 
-    <main class="container">
-        <div class="tabs">
-            <button class="tab-btn active" data-tab="image">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                    <circle cx="12" cy="13" r="4"></circle>
-                </svg>
-                <span>استخراج من صورة</span>
-            </button>
-            <button class="tab-btn" data-tab="pdf">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                </svg>
-                <span>استخراج من PDF</span>
-            </button>
-            <button class="tab-btn" data-tab="text">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <polyline points="4 7 4 4 20 4 20 7"></polyline>
-                    <line x1="9" y1="20" x2="15" y2="20"></line>
-                    <line x1="12" y1="4" x2="12" y2="20"></line>
-                </svg>
-                <span>تلخيص نص</span>
-            </button>
-            <button class="tab-btn" data-tab="img2pdf">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                    <polyline points="7 10 12 15 17 10"></polyline>
-                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                </svg>
-                <span>صور إلى PDF</span>
-            </button>
-            <button class="tab-btn" data-tab="translate">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="m5 8 6 6"></path>
-                    <path d="m4 14 6-6 2-3"></path>
-                    <path d="M2 5h12"></path>
-                    <path d="M7 2h1"></path>
-                    <path d="m22 22-5-10-5 10"></path>
-                    <path d="M14 18h6"></path>
-                </svg>
-                <span>ترجمة</span>
-            </button>
-            <button class="tab-btn" data-tab="history">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M3 3v5h5"></path>
-                    <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path>
-                </svg>
-                <span>السجل</span>
-            </button>
-        </div>
+  <main id="home">
+    <h1>مرحبًا بك في <span>Copy.Ai</span></h1>
+    <p class="lead">أدوات استخراج، تلخيص، ترجمة، تحويل وضغط الملفات — كلّه يعمل داخل المتصفح.</p>
 
-        <div class="tab-content active" id="image-tab">
-            <div class="card">
-                <div class="select-group">
-                    <label>اللغة المستهدفة للاستخراج:</label>
-                    <select id="imageExtractLanguage">
-                        <option value="ara+eng">العربية والإنجليزية</option>
-                        <option value="ara">العربية فقط</option>
-                        <option value="eng">الإنجليزية فقط</option>
-                        <option value="ara+eng+fra">عربي + إنجليزي + فرنسي</option>
-                        <option value="all">جميع اللغات</option>
-                    </select>
-                </div>
+    <div class="sections">
+      <div class="card" onclick="openSection('section-extract')">📄 استخراج النص من الصور و PDF</div>
+      <div class="card" onclick="openSection('section-summary')">🧾 تلخيص النصوص</div>
+      <div class="card" onclick="openSection('section-translate')">🌍 ترجمة (عرض النص المستخرج)</div>
+      <div class="card" onclick="openSection('section-img2pdf')">🖼️ تحويل الصور إلى PDF</div>
+      <div class="card" onclick="openSection('section-resizepdf')">📏 ضغط/تغيير حجم PDF</div>
+      <div class="card" onclick="openSection('section-converttxt')">📂 تحويل النص إلى Word/Excel/PPT/TXT</div>
+      <div class="card" onclick="openSection('section-resizeimg')">🎨 تغيير حجم ونوع الصور</div>
+    </div>
+  </main>
 
-                <div class="controls">
-                    <button class="btn btn-primary" onclick="startCamera('user')">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                            <circle cx="12" cy="13" r="4"></circle>
-                        </svg>
-                        الكاميرا الأمامية
-                    </button>
-                    <button class="btn btn-primary" onclick="startCamera('environment')">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                            <circle cx="12" cy="13" r="4"></circle>
-                        </svg>
-                        الكاميرا الخلفية
-                    </button>
-                    <button class="btn btn-outline" onclick="document.getElementById('imageInput').click()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        تحميل صورة
-                    </button>
-                </div>
-                <input type="file" id="imageInput" accept="image/*" style="display: none;">
+  <!-- ========== قسم: استخراج النص (OCR لكلٍ من الصور و PDF) ========== -->
+  <section id="section-extract" class="panel">
+    <h2>📄 استخراج النص من الصور وملفات PDF</h2>
+    <p>ارفع صورة أو ملف PDF. سنقوم بتحويل صفحات PDF لصور ثم استخراج النص عن طريق Tesseract.</p>
 
-                <div id="cameraView" style="display: none;">
-                    <video id="camera" autoplay></video>
-                    <button class="btn btn-primary" onclick="captureImage()" style="margin-top: 1rem; width: 100%;">التقاط الصورة</button>
-                </div>
+    <label class="field">اختر ملف (صورة أو PDF)</label>
+    <input type="file" id="extract-file" accept="image/*,.pdf" />
 
-                <div id="imagePreview" style="display: none;">
-                    <img id="previewImg" alt="Preview">
-                    <button class="btn btn-primary" onclick="extractFromImage()" style="width: 100%; margin-top: 1rem;">استخراج النص</button>
-                </div>
+    <div class="controls">
+      <button id="btn-extract">🔍 بدء الاستخراج</button>
+      <button class="back" onclick="goHome()">⬅️ العودة للصفحة الرئيسية</button>
+    </div>
 
-                <div id="imageResult" style="display: none;">
-                    <div class="result-section">
-                        <div class="summary-header">
-                            <h3>النص المستخرج:</h3>
-                            <button class="btn btn-sm btn-outline" onclick="copyText('extractedImageText')">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
-                                نسخ
-                            </button>
-                        </div>
-                        <textarea id="extractedImageText" readonly></textarea>
-                        <div class="summary-stats">
-                            <span id="extractedImageWordCount"></span>
-                        </div>
-                    </div>
+    <div class="status" id="extract-status"></div>
+    <pre id="extract-output" class="output"></pre>
+  </section>
 
-                    <div class="result-section">
-                        <div class="summary-header">
-                            <h3>الملخص:</h3>
-                            <div>
-                                <select id="imageSummaryLength" onchange="summarizeExtractedImage()">
-                                    <option value="short">قصير (25%)</option>
-                                    <option value="medium" selected>متوسط (50%)</option>
-                                    <option value="long">مفصل (75%)</option>
-                                </select>
-                                <button class="btn btn-sm btn-outline" onclick="copyText('imageSummaryText')">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                    </svg>
-                                    نسخ
-                                </button>
-                            </div>
-                        </div>
-                        <textarea id="imageSummaryText" readonly></textarea>
-                        <div class="summary-stats">
-                            <span id="imageSummaryWordCount"></span>
-                            <span id="imageSummaryRatio"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <!-- ========== قسم: التلخيص ========== -->
+  <section id="section-summary" class="panel">
+    <h2>🧾 تلخيص النصوص</h2>
+    <p>يمكنك تلخيص النص المستخرج أو لصق نص جديد.</p>
+    <textarea id="summary-input" placeholder="ألصق أو اكتب النص هنا..."></textarea>
+    <div class="controls">
+      <label>عدد جمل الملخص:
+        <select id="summary-sentences">
+          <option value="1">1</option>
+          <option value="2" selected>2</option>
+          <option value="3">3</option>
+          <option value="5">5</option>
+        </select>
+      </label>
+      <button id="btn-summarize">✂️ تلخيص</button>
+      <button class="back" onclick="goHome()">⬅️ العودة للصفحة الرئيسية</button>
+    </div>
+    <pre id="summary-output" class="output"></pre>
+  </section>
 
-        <div class="tab-content" id="pdf-tab">
-            <div class="card">
-                <div class="upload-area" onclick="document.getElementById('pdfInput').click()">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                    </svg>
-                    <p class="upload-title">اسحب ملف PDF هنا أو انقر للتحميل</p>
-                    <p class="upload-subtitle">يدعم ملفات PDF حتى 10MB</p>
-                </div>
-                <input type="file" id="pdfInput" accept="application/pdf" style="display: none;">
+  <!-- ========== قسم: الترجمة (عرض النص المستخرج - يمكن ربط خدمة ترجمة لاحقًا) ========== -->
+  <section id="section-translate" class="panel">
+    <h2>🌍 ترجمة النصوص (عرض النص المعرّف)</h2>
+    <p>استخراج النص باستخدام OCR ثم يمكن ربطه بخدمة ترجمة خارجية. الآن نعرض النص المستخرج.</p>
+    <label>اختر ملف صورة / PDF</label>
+    <input type="file" id="translate-file" accept="image/*,.pdf" />
+    <div class="controls">
+      <select id="translate-target">
+        <option value="en">الإنجليزية</option>
+        <option value="fr">الفرنسية</option>
+        <option value="es">الإسبانية</option>
+        <option value="de">الألمانية</option>
+      </select>
+      <button id="btn-translate">استخراج (وليس ترجمة فعليّة)</button>
+      <button class="back" onclick="goHome()">⬅️ العودة للصفحة الرئيسية</button>
+    </div>
+    <pre id="translate-output" class="output"></pre>
+  </section>
 
-                <div id="pdfPreview" style="display: none;">
-                    <div class="file-info">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        <div>
-                            <p id="pdfFileName"></p>
-                            <p id="pdfFileSize"></p>
-                        </div>
-                    </div>
-                    <button class="btn btn-primary" onclick="extractFromPdf()" style="width: 100%;">استخراج النص</button>
-                </div>
+  <!-- ========== قسم: صور → PDF ========== -->
+  <section id="section-img2pdf" class="panel">
+    <h2>🖼️ تحويل صور متعددة إلى ملف PDF</h2>
+    <label>اختر صورًا (يمكن اختيار أكثر من صورة)</label>
+    <input type="file" id="img2pdf-input" accept="image/*" multiple />
+    <div class="controls">
+      <button id="btn-img2pdf">🔁 تحويل إلى PDF</button>
+      <a id="img2pdf-download" style="display:none;"></a>
+      <button class="back" onclick="goHome()">⬅️ العودة للصفحة الرئيسية</button>
+    </div>
+    <div class="status" id="img2pdf-status"></div>
+  </section>
 
-                <div id="pdfResult" style="display: none;">
-                    <div class="result-section">
-                        <div class="summary-header">
-                            <h3>النص المستخرج:</h3>
-                            <button class="btn btn-sm btn-outline" onclick="copyText('extractedPdfText')">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
-                                نسخ
-                            </button>
-                        </div>
-                        <textarea id="extractedPdfText" readonly></textarea>
-                        <div class="summary-stats">
-                            <span id="extractedPdfWordCount"></span>
-                        </div>
-                    </div>
+  <!-- ========== قسم: ضغط/تغيير حجم PDF (تقريبي) ========== -->
+  <section id="section-resizepdf" class="panel">
+    <h2>📏 ضغط / تغيير حجم PDF (تقريبي)</h2>
+    <p>نحو ضغط الصور داخل PDF وإعادة بناء PDF مضغوط. يعتمد على مدى كون PDF عبارة عن صور.</p>
+    <label>اختر ملف PDF</label>
+    <input type="file" id="resizepdf-input" accept=".pdf" />
+    <label>جودة الصور بعد الضغط (0.1 - 1.0)</label>
+    <input type="number" id="resizepdf-quality" step="0.1" min="0.1" max="1" value="0.6" />
+    <div class="controls">
+      <button id="btn-resizepdf">ضغط وإعادة إنشاء PDF</button>
+      <a id="resizepdf-download" style="display:none;"></a>
+      <button class="back" onclick="goHome()">⬅️ العودة للصفحة الرئيسية</button>
+    </div>
+    <div class="status" id="resizepdf-status"></div>
+  </section>
 
-                    <div class="result-section">
-                        <div class="summary-header">
-                            <h3>الملخص:</h3>
-                            <div>
-                                <select id="pdfSummaryLength" onchange="summarizeExtractedPdf()">
-                                    <option value="short">قصير (25%)</option>
-                                    <option value="medium" selected>متوسط (50%)</option>
-                                    <option value="long">مفصل (75%)</option>
-                                </select>
-                                <button class="btn btn-sm btn-outline" onclick="copyText('pdfSummaryText')">
-                                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                    </svg>
-                                    نسخ
-                                </button>
-                            </div>
-                        </div>
-                        <textarea id="pdfSummaryText" readonly></textarea>
-                        <div class="summary-stats">
-                            <span id="pdfSummaryWordCount"></span>
-                            <span id="pdfSummaryRatio"></span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <!-- ========== قسم: تحويل النص إلى ملفات Office و TXT ========== -->
+  <section id="section-converttxt" class="panel">
+    <h2>📂 تحويل النص إلى Word / Excel / PowerPoint / Text</h2>
+    <textarea id="convert-input" placeholder="أدخل النص أو الصق الملخص هنا..."></textarea>
+    <div class="controls">
+      <select id="convert-type">
+        <option value="txt">Text (.txt)</option>
+        <option value="docx">Word (.docx)</option>
+        <option value="xlsx">Excel (.xlsx)</option>
+        <option value="pptx">PowerPoint (.pptx)</option>
+      </select>
+      <button id="btn-convertfile">⬇️ تحويل وتحميل</button>
+      <button class="back" onclick="goHome()">⬅️ العودة للصفحة الرئيسية</button>
+    </div>
+    <div class="status" id="convert-status"></div>
+  </section>
 
-        <div class="tab-content" id="text-tab">
-            <div class="card">
-                <label class="text-label">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <polyline points="4 7 4 4 20 4 20 7"></polyline>
-                        <line x1="9" y1="20" x2="15" y2="20"></line>
-                        <line x1="12" y1="4" x2="12" y2="20"></line>
-                    </svg>
-                    النص المراد تلخيصه:
-                </label>
-                <textarea id="textInput" placeholder="الصق النص هنا..."></textarea>
-                <div class="summary-stats">
-                    <span id="textWordCount">الكلمات: 0</span>
-                    <span id="textCharCount">الأحرف: 0</span>
-                </div>
-                <div class="select-group">
-                    <label>طول التلخيص:</label>
-                    <select id="textSummaryLength">
-                        <option value="short">قصير (25%)</option>
-                        <option value="medium" selected>متوسط (50%)</option>
-                        <option value="long">مفصل (75%)</option>
-                    </select>
-                </div>
-                <button class="btn btn-primary" onclick="summarizeText()" style="width: 100%;">تلخيص النص</button>
+  <!-- ========== قسم: تغيير حجم ونوع الصورة ========== -->
+  <section id="section-resizeimg" class="panel">
+    <h2>🎨 تغيير حجم الصور وتغيير الصيغة</h2>
+    <label>اختر صورة</label>
+    <input type="file" id="resizeimg-input" accept="image/*" />
+    <div class="resize-fields">
+      <input type="number" id="resizeimg-width" placeholder="العرض (px)" />
+      <input type="number" id="resizeimg-height" placeholder="الارتفاع (px)" />
+      <select id="resizeimg-format">
+        <option value="jpeg">JPEG</option>
+        <option value="png">PNG</option>
+        <option value="webp">WEBP</option>
+      </select>
+    </div>
+    <div class="controls">
+      <button id="btn-resizeimg">تطبيق وتحميل</button>
+      <a id="resizeimg-download" style="display:none;"></a>
+      <button class="back" onclick="goHome()">⬅️ العودة للصفحة الرئيسية</button>
+    </div>
+    <canvas id="resizeimg-canvas" style="display:none;"></canvas>
+    <div class="status" id="resizeimg-status"></div>
+  </section>
 
-                <div id="textSummaryResult" style="display: none;">
-                    <div class="summary-header">
-                        <h3>التلخيص:</h3>
-                        <button class="btn btn-sm btn-outline" onclick="copyText('textSummaryText')">
-                            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                            </svg>
-                            نسخ
-                        </button>
-                    </div>
-                    <textarea id="textSummaryText" readonly></textarea>
-                    <div class="summary-stats">
-                        <span id="textSummaryWordCount"></span>
-                        <span id="textSummaryRatio"></span>
-                    </div>
-                </div>
-            </div>
-        </div>
+  <footer>
+    <p>© 2025 Copy.Ai — Developed by: <strong>محمود محمد محمود أبو الفتوح أحمد العزيري</strong></p>
+  </footer>
 
-        <div class="tab-content" id="img2pdf-tab">
-            <div class="card">
-                <h2 style="margin-bottom: 1.5rem;">تحويل الصور إلى PDF</h2>
-
-                <div class="controls">
-                    <button class="btn btn-primary" onclick="startCameraForPdf('user')">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                            <circle cx="12" cy="13" r="4"></circle>
-                        </svg>
-                        الكاميرا الأمامية
-                    </button>
-                    <button class="btn btn-primary" onclick="startCameraForPdf('environment')">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path>
-                            <circle cx="12" cy="13" r="4"></circle>
-                        </svg>
-                        الكاميرا الخلفية
-                    </button>
-                    <button class="btn btn-outline" onclick="document.getElementById('pdfImagesInput').click()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        تحميل صور
-                    </button>
-                </div>
-                <input type="file" id="pdfImagesInput" accept="image/*" multiple style="display: none;">
-
-                <div id="cameraPdfView" style="display: none;">
-                    <video id="cameraPdf" autoplay></video>
-                    <button class="btn btn-primary" onclick="capturePdfImage()" style="margin-top: 1rem; width: 100%;">التقاط الصورة</button>
-                </div>
-
-                <div id="pdfImagesPreview" style="display: none;">
-                    <div class="images-grid" id="imagesGrid"></div>
-
-                    <div class="select-group" style="margin-top: 1rem;">
-                        <label>جودة الصور في PDF:</label>
-                        <select id="pdfQuality">
-                            <option value="0.7">عادية (حجم أصغر)</option>
-                            <option value="0.85" selected>جيدة (موصى به)</option>
-                            <option value="0.95">عالية (حجم أكبر)</option>
-                        </select>
-                    </div>
-
-                    <div class="select-group">
-                        <label>حجم الصفحة:</label>
-                        <select id="pdfPageSize">
-                            <option value="a4" selected>A4</option>
-                            <option value="a3">A3</option>
-                            <option value="letter">Letter</option>
-                            <option value="legal">Legal</option>
-                        </select>
-                    </div>
-
-                    <div class="controls" style="margin-top: 1rem;">
-                        <button class="btn btn-primary" onclick="generatePdfFromImages()">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                            </svg>
-                            إنشاء PDF
-                        </button>
-                        <button class="btn btn-outline" onclick="clearPdfImages()">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <polyline points="3 6 5 6 21 6"></polyline>
-                                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                            </svg>
-                            مسح الكل
-                        </button>
-                    </div>
-                </div>
-
-                <div id="pdfGeneratedResult" style="display: none;">
-                    <div class="result-section">
-                        <div class="summary-header">
-                            <h3>ملف PDF تم إنشاؤه بنجاح!</h3>
-                        </div>
-                        <div class="pdf-info">
-                            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                <polyline points="14 2 14 8 20 8"></polyline>
-                            </svg>
-                            <div style="width: 100%;">
-                                <label style="display: block; margin-bottom: 0.5rem; font-weight: 600;">اسم الملف:</label>
-                                <input type="text" id="generatedPdfNameInput" placeholder="ادخل اسم الملف" style="width: 100%; padding: 0.5rem; border: 1px solid var(--border); border-radius: 0.5rem; background: var(--bg-card); color: var(--text-primary); margin-bottom: 0.5rem;">
-                                <p id="generatedPdfSize"></p>
-                            </div>
-                        </div>
-                        <div class="controls">
-                            <button class="btn btn-primary" onclick="downloadGeneratedPdf()">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                                    <polyline points="7 10 12 15 17 10"></polyline>
-                                    <line x1="12" y1="15" x2="12" y2="3"></line>
-                                </svg>
-                                تنزيل PDF
-                            </button>
-                            <button class="btn btn-outline" onclick="loadGeneratedPdfForExtraction()">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                                    <polyline points="14 2 14 8 20 8"></polyline>
-                                </svg>
-                                استخراج النص من PDF
-                            </button>
-                            <button class="btn btn-outline" onclick="clearGeneratedPdf()">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <polyline points="3 6 5 6 21 6"></polyline>
-                                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                                </svg>
-                                مسح من السجل
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-content" id="translate-tab">
-            <div class="card">
-                <h2 style="margin-bottom: 1.5rem;">ترجمة الصور والملفات</h2>
-
-                <div class="select-group">
-                    <label>نوع الملف:</label>
-                    <select id="translateFileType">
-                        <option value="image">صورة</option>
-                        <option value="pdf">ملف PDF</option>
-                    </select>
-                </div>
-
-                <div class="controls">
-                    <button class="btn btn-primary" onclick="document.getElementById('translateFileInput').click()">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
-                            <polyline points="17 8 12 3 7 8"></polyline>
-                            <line x1="12" y1="3" x2="12" y2="15"></line>
-                        </svg>
-                        تحميل ملف
-                    </button>
-                </div>
-                <input type="file" id="translateFileInput" accept="image/*,application/pdf" style="display: none;">
-
-                <div id="translatePreview" style="display: none;">
-                    <div class="file-info">
-                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        <div>
-                            <p id="translateFileName"></p>
-                            <p id="translateFileSize"></p>
-                        </div>
-                    </div>
-
-                    <div class="select-group">
-                        <label>اللغة المصدر:</label>
-                        <select id="sourceLanguage">
-                            <option value="auto">اكتشاف تلقائي</option>
-                            <option value="ara">العربية</option>
-                            <option value="eng">الإنجليزية</option>
-                            <option value="fra">الفرنسية</option>
-                            <option value="spa">الإسبانية</option>
-                            <option value="deu">الألمانية</option>
-                            <option value="ita">الإيطالية</option>
-                            <option value="por">البرتغالية</option>
-                            <option value="rus">الروسية</option>
-                            <option value="jpn">اليابانية</option>
-                            <option value="chi_sim">الصينية المبسطة</option>
-                            <option value="kor">الكورية</option>
-                            <option value="tur">التركية</option>
-                            <option value="hin">الهندية</option>
-                            <option value="urd">الأوردو</option>
-                        </select>
-                    </div>
-
-                    <div class="select-group">
-                        <label>اللغة المستهدفة:</label>
-                        <select id="targetLanguage">
-                            <option value="ar">العربية</option>
-                            <option value="en" selected>الإنجليزية</option>
-                            <option value="fr">الفرنسية</option>
-                            <option value="es">الإسبانية</option>
-                            <option value="de">الألمانية</option>
-                            <option value="it">الإيطالية</option>
-                            <option value="pt">البرتغالية</option>
-                            <option value="ru">الروسية</option>
-                            <option value="ja">اليابانية</option>
-                            <option value="zh">الصينية</option>
-                            <option value="ko">الكورية</option>
-                            <option value="tr">التركية</option>
-                            <option value="hi">الهندية</option>
-                            <option value="ur">الأوردو</option>
-                        </select>
-                    </div>
-
-                    <button class="btn btn-primary" onclick="translateFile()" style="width: 100%;">ترجمة الملف</button>
-                </div>
-
-                <div id="translateResult" style="display: none;">
-                    <div class="result-section">
-                        <div class="summary-header">
-                            <h3>النص الأصلي:</h3>
-                            <button class="btn btn-sm btn-outline" onclick="copyText('originalTranslateText')">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
-                                نسخ
-                            </button>
-                        </div>
-                        <textarea id="originalTranslateText" readonly></textarea>
-                    </div>
-
-                    <div class="result-section">
-                        <div class="summary-header">
-                            <h3>النص المترجم:</h3>
-                            <button class="btn btn-sm btn-outline" onclick="copyText('translatedText')">
-                                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
-                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
-                                </svg>
-                                نسخ
-                            </button>
-                        </div>
-                        <textarea id="translatedText" readonly></textarea>
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="tab-content" id="history-tab">
-            <div class="history-actions">
-                <button class="btn btn-outline btn-sm" onclick="clearAllHistory()">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <polyline points="3 6 5 6 21 6"></polyline>
-                        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-                    </svg>
-                    مسح الكل
-                </button>
-            </div>
-            <div id="historyList" class="history-list"></div>
-            <div id="emptyHistory" class="empty-state">
-                <svg width="64" height="64" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                    <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                    <polyline points="14 2 14 8 20 8"></polyline>
-                </svg>
-                <h3>لا توجد سجلات بعد</h3>
-                <p>ابدأ باستخراج أو تلخيص نص لرؤيته هنا</p>
-            </div>
-        </div>
-
-        <div class="features">
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
-                    </svg>
-                </div>
-                <h3>استخراج تلقائي</h3>
-                <p>استخرج النصوص من الصور و PDF بدقة عالية</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                        <polyline points="14 2 14 8 20 8"></polyline>
-                    </svg>
-                </div>
-                <h3>تلخيص ذكي</h3>
-                <p>اختصر النصوص الطويلة بنسب مختلفة</p>
-            </div>
-            <div class="feature-card">
-                <div class="feature-icon">
-                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                        <path d="M3 3v5h5"></path>
-                        <path d="M3.05 13A9 9 0 1 0 6 5.3L3 8"></path>
-                    </svg>
-                </div>
-                <h3>حفظ السجل</h3>
-                <p>الوصول لجميع عمليات الاستخراج والتلخيص</p>
-            </div>
-        </div>
-    </main>
-
-    <div id="toast" class="toast"></div>
-
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4/dist/tesseract.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script>
-        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-    </script>
-    <script src="script.js"></script>
+  <script src="script.js"></script>
 </body>
 </html>
