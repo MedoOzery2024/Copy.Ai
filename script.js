@@ -143,25 +143,45 @@ async function extractFromImage() {
     btn.innerHTML = '<span>جاري استخراج النص...</span>';
 
     try {
+        let language = document.getElementById('imageExtractLanguage').value;
+
+        if (language === 'all') {
+            language = 'ara+eng+fra+spa+deu+ita+por+rus+jpn+chi_sim+kor+tur+hin';
+        }
+
         const result = await Tesseract.recognize(
             currentImage,
-            'ara+eng',
+            language,
             {
-                logger: m => console.log(m)
+                logger: m => {
+                    if (m.status === 'recognizing text') {
+                        btn.innerHTML = `<span>استخراج النص... ${Math.round(m.progress * 100)}%</span>`;
+                    }
+                }
             }
         );
 
-        extractedImageText = cleanExtractedText(result.data.text.trim());
+        let rawText = result.data.text.trim();
 
-        if (!extractedImageText || extractedImageText.length < 10) {
+        rawText = rawText.replace(/[\u064B-\u0652]/g, '');
+        rawText = rawText.replace(/[ـ]/g, '');
+
+        extractedImageText = cleanExtractedText(rawText);
+        extractedImageText = fixArabicText(extractedImageText);
+
+        if (!extractedImageText || extractedImageText.length < 5) {
             throw new Error('لم يتم العثور على نص واضح في الصورة');
         }
 
         document.getElementById('extractedImageText').value = extractedImageText;
         document.getElementById('extractedImageWordCount').textContent = `عدد الكلمات: ${countWords(extractedImageText)}`;
 
-        navigator.clipboard.writeText(extractedImageText);
-        showToast('تم استخراج ونسخ النص!');
+        try {
+            await navigator.clipboard.writeText(extractedImageText);
+            showToast('تم استخراج ونسخ النص!');
+        } catch (clipErr) {
+            showToast('تم استخراج النص!');
+        }
 
         summarizeExtractedImage();
 
@@ -291,7 +311,7 @@ async function extractFromPdf() {
 
                     const ocrResult = await Tesseract.recognize(
                         imageBlob,
-                        'ara+eng',
+                        'ara+eng+fra+spa+deu+ita+por+rus+jpn+chi_sim+kor+tur+hin',
                         {
                             logger: m => {
                                 if (m.status === 'recognizing text') {
@@ -301,9 +321,15 @@ async function extractFromPdf() {
                         }
                     );
 
-                    const ocrText = cleanExtractedText(ocrResult.data.text.trim());
-                    if (ocrText && ocrText.length > 20) {
-                        fullText += ocrText + '\n\n';
+                    let ocrRawText = ocrResult.data.text.trim();
+                    ocrRawText = ocrRawText.replace(/[\u064B-\u0652]/g, '');
+                    ocrRawText = ocrRawText.replace(/[ـ]/g, '');
+
+                    const ocrText = cleanExtractedText(ocrRawText);
+                    const fixedOcrText = fixArabicText(ocrText);
+
+                    if (fixedOcrText && fixedOcrText.length > 20) {
+                        fullText += fixedOcrText + '\n\n';
                         imagesProcessed++;
                     }
                 } catch (ocrError) {
@@ -479,6 +505,56 @@ function normalizeArabicText(text) {
         .trim();
 }
 
+function fixArabicText(text) {
+    let fixed = text;
+
+    fixed = fixed.replace(/\u0627\u0644\u0644\u0647/g, 'الله');
+    fixed = fixed.replace(/\u0627\u0644\u0631\u062d\u0645\u0646/g, 'الرحمن');
+    fixed = fixed.replace(/\u0627\u0644\u0631\u062d\u064a\u0645/g, 'الرحيم');
+
+    fixed = fixed.replace(/[ﺍﺎﺁﺂﺃﺄﺇﺈﺇﺈﺉﺊﺋﺌ]/g, 'ا');
+    fixed = fixed.replace(/[ﺏﺐﺑﺒ]/g, 'ب');
+    fixed = fixed.replace(/[ﺕﺖﺗﺘ]/g, 'ت');
+    fixed = fixed.replace(/[ﺙﺚﺛﺜ]/g, 'ث');
+    fixed = fixed.replace(/[ﺝﺞﺟﺠ]/g, 'ج');
+    fixed = fixed.replace(/[ﺡﺢﺣﺤ]/g, 'ح');
+    fixed = fixed.replace(/[ﺥﺦﺧﺨ]/g, 'خ');
+    fixed = fixed.replace(/[ﺩﺪ]/g, 'د');
+    fixed = fixed.replace(/[ﺫﺬ]/g, 'ذ');
+    fixed = fixed.replace(/[ﺭﺮ]/g, 'ر');
+    fixed = fixed.replace(/[ﺯﺰ]/g, 'ز');
+    fixed = fixed.replace(/[ﺱﺲﺳﺴ]/g, 'س');
+    fixed = fixed.replace(/[ﺵﺶﺷﺸ]/g, 'ش');
+    fixed = fixed.replace(/[ﺹﺺﺻﺼ]/g, 'ص');
+    fixed = fixed.replace(/[ﺽﺾﺿﻀ]/g, 'ض');
+    fixed = fixed.replace(/[ﻁﻂﻃﻄ]/g, 'ط');
+    fixed = fixed.replace(/[ﻅﻆﻇﻈ]/g, 'ظ');
+    fixed = fixed.replace(/[ﻉﻊﻋﻌ]/g, 'ع');
+    fixed = fixed.replace(/[ﻍﻎﻏﻐ]/g, 'غ');
+    fixed = fixed.replace(/[ﻑﻒﻓﻔ]/g, 'ف');
+    fixed = fixed.replace(/[ﻕﻖﻗﻘ]/g, 'ق');
+    fixed = fixed.replace(/[ﻙﻚﻛﻜ]/g, 'ك');
+    fixed = fixed.replace(/[ﻝﻞﻟﻠ]/g, 'ل');
+    fixed = fixed.replace(/[ﻡﻢﻣﻤ]/g, 'م');
+    fixed = fixed.replace(/[ﻥﻦﻧﻨ]/g, 'ن');
+    fixed = fixed.replace(/[ﻩﻪﻫﻬ]/g, 'ه');
+    fixed = fixed.replace(/[ﻭﻮ]/g, 'و');
+    fixed = fixed.replace(/[ﻱﻲﻳﻴ]/g, 'ي');
+    fixed = fixed.replace(/[ﻯﻰ]/g, 'ى');
+    fixed = fixed.replace(/[ﺓﺔ]/g, 'ة');
+
+    fixed = fixed.replace(/ﻻ/g, 'لا');
+    fixed = fixed.replace(/ﻷ/g, 'لأ');
+    fixed = fixed.replace(/ﻹ/g, 'لإ');
+    fixed = fixed.replace(/ﻵ/g, 'لآ');
+
+    fixed = fixed.replace(/[أإآ]/g, 'ا');
+    fixed = fixed.replace(/[ىي]/g, 'ي');
+    fixed = fixed.replace(/ة/g, 'ه');
+
+    return fixed;
+}
+
 function cleanExtractedText(text) {
     let cleaned = text;
 
@@ -488,17 +564,13 @@ function cleanExtractedText(text) {
 
     cleaned = cleaned.replace(/[^\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFFa-zA-Z0-9\s.,;:!?؟،؛\-()[\]{}'"«»""\n\r%$€£٪٠-٩]/g, ' ');
 
-    cleaned = cleaned.replace(/\b[a-zA-Z]{1,2}\b(?!\s*[a-zA-Z])/g, ' ');
+    cleaned = cleaned.replace(/\b[a-zA-Z]\b(?!\s*[a-zA-Z])/g, '');
 
-    cleaned = cleaned.replace(/\b[A-Z]{2,}\b/g, ' ');
+    cleaned = cleaned.replace(/\b[A-Z]{2,}\b(?![a-z])/g, '');
 
-    cleaned = cleaned.replace(/([a-zA-Z])\1{2,}/g, ' ');
+    cleaned = cleaned.replace(/([a-zA-Z])\1{3,}/g, '');
 
-    cleaned = cleaned.replace(/[a-zA-Z]+[0-9]+[a-zA-Z]*/g, ' ');
-
-    cleaned = cleaned.replace(/\b[a-z]+[A-Z]+[a-z]*\b/g, ' ');
-
-    cleaned = cleaned.replace(/(\d+\.?\d*)\s*([a-zA-Z]{1,3})\s*(\d+)/g, '$1 $3');
+    cleaned = cleaned.replace(/[a-zA-Z]*[0-9]+[a-zA-Z]*/g, '');
 
     cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
 
@@ -508,15 +580,13 @@ function cleanExtractedText(text) {
 
     const lines = cleaned.split('\n');
     cleaned = lines.filter(line => {
-        const arabicChars = (line.match(/[\u0600-\u06FF]/g) || []).length;
-        const englishChars = (line.match(/[a-zA-Z]/g) || []).length;
-        const totalChars = line.replace(/\s/g, '').length;
+        const trimmed = line.trim();
+        if (trimmed.length === 0) return false;
 
-        if (totalChars === 0) return false;
+        const arabicChars = (trimmed.match(/[\u0600-\u06FF]/g) || []).length;
+        const validChars = (trimmed.match(/[\u0600-\u06FFa-zA-Z]/g) || []).length;
 
-        if (englishChars > arabicChars && englishChars > totalChars * 0.5) {
-            return false;
-        }
+        if (validChars < 3) return false;
 
         return true;
     }).join('\n');
@@ -869,6 +939,13 @@ function displayPdfImages() {
     pdfImages.forEach((img, index) => {
         const div = document.createElement('div');
         div.className = 'image-item';
+        div.draggable = true;
+        div.dataset.index = index;
+
+        div.addEventListener('dragstart', handleDragStart);
+        div.addEventListener('dragover', handleDragOver);
+        div.addEventListener('drop', handleDrop);
+        div.addEventListener('dragend', handleDragEnd);
 
         const imgElement = document.createElement('img');
         const url = URL.createObjectURL(img);
@@ -883,13 +960,74 @@ function displayPdfImages() {
         number.className = 'image-item-number';
         number.textContent = index + 1;
 
+        const moveUpBtn = document.createElement('button');
+        moveUpBtn.className = 'image-item-move';
+        moveUpBtn.style.cssText = 'position: absolute; top: 0.5rem; left: 0.5rem; background: rgba(234, 179, 8, 0.9); border: none; border-radius: 50%; width: 2rem; height: 2rem; color: var(--bg-primary); cursor: pointer; font-weight: bold;';
+        moveUpBtn.innerHTML = '↑';
+        moveUpBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (index > 0) {
+                const temp = pdfImages[index];
+                pdfImages[index] = pdfImages[index - 1];
+                pdfImages[index - 1] = temp;
+                displayPdfImages();
+            }
+        };
+
+        const moveDownBtn = document.createElement('button');
+        moveDownBtn.className = 'image-item-move';
+        moveDownBtn.style.cssText = 'position: absolute; bottom: 0.5rem; right: 0.5rem; background: rgba(234, 179, 8, 0.9); border: none; border-radius: 50%; width: 2rem; height: 2rem; color: var(--bg-primary); cursor: pointer; font-weight: bold;';
+        moveDownBtn.innerHTML = '↓';
+        moveDownBtn.onclick = (e) => {
+            e.stopPropagation();
+            if (index < pdfImages.length - 1) {
+                const temp = pdfImages[index];
+                pdfImages[index] = pdfImages[index + 1];
+                pdfImages[index + 1] = temp;
+                displayPdfImages();
+            }
+        };
+
         div.appendChild(imgElement);
         div.appendChild(removeBtn);
         div.appendChild(number);
+        if (index > 0) div.appendChild(moveUpBtn);
+        if (index < pdfImages.length - 1) div.appendChild(moveDownBtn);
         grid.appendChild(div);
     });
 
     document.getElementById('pdfImagesPreview').style.display = pdfImages.length > 0 ? 'block' : 'none';
+}
+
+let draggedIndex = null;
+
+function handleDragStart(e) {
+    draggedIndex = parseInt(e.target.dataset.index);
+    e.target.style.opacity = '0.5';
+}
+
+function handleDragOver(e) {
+    e.preventDefault();
+    return false;
+}
+
+function handleDrop(e) {
+    e.preventDefault();
+    const dropIndex = parseInt(e.target.closest('.image-item').dataset.index);
+
+    if (draggedIndex !== null && draggedIndex !== dropIndex) {
+        const temp = pdfImages[draggedIndex];
+        pdfImages[draggedIndex] = pdfImages[dropIndex];
+        pdfImages[dropIndex] = temp;
+        displayPdfImages();
+    }
+
+    return false;
+}
+
+function handleDragEnd(e) {
+    e.target.style.opacity = '1';
+    draggedIndex = null;
 }
 
 function removePdfImage(index) {
@@ -919,26 +1057,38 @@ async function generatePdfFromImages() {
     btn.innerHTML = '<span>جاري إنشاء PDF...</span>';
 
     try {
+        const quality = parseFloat(document.getElementById('pdfQuality').value);
+        const pageSize = document.getElementById('pdfPageSize').value;
+
         const { jsPDF } = window.jspdf;
         const pdf = new jsPDF({
             orientation: 'portrait',
             unit: 'mm',
-            format: 'a4'
+            format: pageSize,
+            compress: false
         });
 
         for (let i = 0; i < pdfImages.length; i++) {
+            btn.innerHTML = `<span>معالجة صورة ${i + 1} من ${pdfImages.length}...</span>`;
+
             const img = pdfImages[i];
             const url = URL.createObjectURL(img);
 
-            const imgData = await new Promise((resolve) => {
+            const imgData = await new Promise((resolve, reject) => {
                 const image = new Image();
                 image.onload = () => {
-                    const canvas = document.createElement('canvas');
-                    canvas.width = image.width;
-                    canvas.height = image.height;
-                    canvas.getContext('2d').drawImage(image, 0, 0);
-                    resolve(canvas.toDataURL('image/jpeg', 0.9));
+                    try {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = image.width;
+                        canvas.height = image.height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(image, 0, 0);
+                        resolve(canvas.toDataURL('image/jpeg', quality));
+                    } catch (err) {
+                        reject(err);
+                    }
                 };
+                image.onerror = () => reject(new Error('فشل تحميل الصورة'));
                 image.src = url;
             });
 
@@ -965,22 +1115,24 @@ async function generatePdfFromImages() {
             }
 
             pdf.addImage(imgData, 'JPEG', x, y, finalWidth, finalHeight);
+
+            URL.revokeObjectURL(url);
         }
 
         generatedPdfBlob = pdf.output('blob');
         const size = formatFileSize(generatedPdfBlob.size);
-        const name = `صور_${new Date().getTime()}.pdf`;
+        const defaultName = `مستند_${new Date().toLocaleDateString('ar-EG').replace(/\//g, '-')}_${new Date().getTime()}`;
 
-        document.getElementById('generatedPdfName').textContent = name;
-        document.getElementById('generatedPdfSize').textContent = size;
+        document.getElementById('generatedPdfNameInput').value = defaultName;
+        document.getElementById('generatedPdfSize').textContent = `الحجم: ${size}`;
         document.getElementById('pdfImagesPreview').style.display = 'none';
         document.getElementById('pdfGeneratedResult').style.display = 'block';
 
-        showToast(`تم إنشاء PDF من ${pdfImages.length} صورة!`);
+        showToast(`تم إنشاء PDF من ${pdfImages.length} صورة بنجاح!`);
 
     } catch (error) {
         console.error('PDF generation error:', error);
-        showToast('فشل في إنشاء PDF', 'error');
+        showToast('فشل في إنشاء PDF: ' + error.message, 'error');
     } finally {
         btn.classList.remove('loading');
         btn.disabled = false;
@@ -994,30 +1146,61 @@ function downloadGeneratedPdf() {
         return;
     }
 
+    let fileName = document.getElementById('generatedPdfNameInput').value.trim();
+    if (!fileName) {
+        fileName = `مستند_${new Date().getTime()}`;
+    }
+
+    if (!fileName.toLowerCase().endsWith('.pdf')) {
+        fileName += '.pdf';
+    }
+
     const url = URL.createObjectURL(generatedPdfBlob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `صور_${new Date().getTime()}.pdf`;
+    a.download = fileName;
     a.click();
     URL.revokeObjectURL(url);
-    showToast('تم تنزيل PDF!');
+    showToast('تم تنزيل PDF بنجاح!');
 }
 
-async function copyGeneratedPdf() {
+function loadGeneratedPdfForExtraction() {
     if (!generatedPdfBlob) {
-        showToast('لا يوجد PDF لنسخه', 'error');
+        showToast('لا يوجد PDF لاستخراج النص منه', 'error');
         return;
     }
 
-    try {
-        const file = new File([generatedPdfBlob], 'document.pdf', { type: 'application/pdf' });
-        await navigator.clipboard.write([
-            new ClipboardItem({ 'application/pdf': file })
-        ]);
-        showToast('تم نسخ PDF!');
-    } catch (error) {
-        showToast('فشل في نسخ PDF', 'error');
+    let fileName = document.getElementById('generatedPdfNameInput').value.trim();
+    if (!fileName) {
+        fileName = `مستند_${new Date().getTime()}`;
     }
+
+    if (!fileName.toLowerCase().endsWith('.pdf')) {
+        fileName += '.pdf';
+    }
+
+    const file = new File([generatedPdfBlob], fileName, { type: 'application/pdf' });
+
+    currentPdf = file;
+
+    document.getElementById('pdfFileName').textContent = file.name;
+    document.getElementById('pdfFileSize').textContent = formatFileSize(file.size);
+    document.getElementById('pdfPreview').style.display = 'block';
+    document.getElementById('pdfResult').style.display = 'none';
+
+    const tabs = document.querySelectorAll('.tab-btn');
+    const contents = document.querySelectorAll('.tab-content');
+
+    tabs.forEach(tab => tab.classList.remove('active'));
+    contents.forEach(content => content.classList.remove('active'));
+
+    const pdfTab = document.querySelector('[data-tab="pdf"]');
+    const pdfContent = document.getElementById('pdf-tab');
+
+    if (pdfTab) pdfTab.classList.add('active');
+    if (pdfContent) pdfContent.classList.add('active');
+
+    showToast('تم تحميل PDF في قسم الاستخراج. اضغط على زر "استخراج النص"');
 }
 
 function clearGeneratedPdf() {
@@ -1065,7 +1248,7 @@ async function translateFile() {
         if (translateCurrentFile.type.startsWith('image/')) {
             const result = await Tesseract.recognize(
                 translateCurrentFile,
-                sourceLang === 'auto' ? 'ara+eng' : sourceLang,
+                sourceLang === 'auto' ? 'ara+eng+fra+spa+deu+ita+por+rus+jpn+chi_sim+kor+tur+hin' : sourceLang,
                 {
                     logger: m => {
                         if (m.status === 'recognizing text') {
@@ -1074,7 +1257,13 @@ async function translateFile() {
                     }
                 }
             );
-            extractedText = cleanExtractedText(result.data.text.trim());
+
+            let rawText = result.data.text.trim();
+            rawText = rawText.replace(/[\u064B-\u0652]/g, '');
+            rawText = rawText.replace(/[ـ]/g, '');
+
+            extractedText = cleanExtractedText(rawText);
+            extractedText = fixArabicText(extractedText);
         } else if (translateCurrentFile.type === 'application/pdf') {
             const arrayBuffer = await translateCurrentFile.arrayBuffer();
             const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
@@ -1083,12 +1272,29 @@ async function translateFile() {
             for (let i = 1; i <= pdf.numPages; i++) {
                 const page = await pdf.getPage(i);
                 const textContent = await page.getTextContent();
-                const pageText = textContent.items.map(item => item.str).join(' ');
+
+                let pageText = '';
+                textContent.items.forEach((item, index) => {
+                    if (item.str) {
+                        const nextItem = textContent.items[index + 1];
+                        const cleanStr = item.str.replace(/[\u200B-\u200D\uFEFF]/g, '');
+                        pageText += cleanStr;
+
+                        if (nextItem && item.transform[5] !== nextItem.transform[5]) {
+                            pageText += '\n';
+                        } else if (nextItem && cleanStr.trim() !== '') {
+                            pageText += ' ';
+                        }
+                    }
+                });
+
                 fullText += pageText + '\n\n';
 
                 btn.innerHTML = `<span>جاري استخراج النص... صفحة ${i} من ${pdf.numPages}</span>`;
             }
+
             extractedText = cleanExtractedText(fullText.trim());
+            extractedText = fixArabicText(extractedText);
         }
 
         if (!extractedText || extractedText.length < 5) {
@@ -1098,6 +1304,10 @@ async function translateFile() {
         btn.innerHTML = '<span>جاري الترجمة...</span>';
 
         const translatedText = await translateText(extractedText, targetLang);
+
+        if (!translatedText || translatedText.trim().length === 0) {
+            throw new Error('فشلت عملية الترجمة');
+        }
 
         document.getElementById('originalTranslateText').value = extractedText;
         document.getElementById('translatedText').value = translatedText;
@@ -1116,28 +1326,51 @@ async function translateFile() {
 }
 
 async function translateText(text, targetLang) {
-    const sentences = text.split(/[.!?؟।\n]+/).filter(s => s.trim().length > 0);
-    const translated = [];
+    try {
+        const chunkSize = 500;
+        const words = text.split(' ');
+        const chunks = [];
 
-    for (let sentence of sentences) {
-        const trimmed = sentence.trim();
-        if (trimmed.length > 0) {
+        for (let i = 0; i < words.length; i += chunkSize) {
+            chunks.push(words.slice(i, i + chunkSize).join(' '));
+        }
+
+        const translated = [];
+
+        for (let chunk of chunks) {
+            const trimmed = chunk.trim();
+            if (trimmed.length === 0) continue;
+
             try {
                 const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=${targetLang}&dt=t&q=${encodeURIComponent(trimmed)}`;
+
                 const response = await fetch(url);
+
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+
                 const data = await response.json();
 
-                if (data && data[0] && data[0][0] && data[0][0][0]) {
-                    translated.push(data[0][0][0]);
+                if (data && data[0]) {
+                    const translatedChunk = data[0].map(item => item[0]).join('');
+                    translated.push(translatedChunk);
                 } else {
                     translated.push(trimmed);
                 }
+
+                await new Promise(resolve => setTimeout(resolve, 500));
+
             } catch (error) {
-                console.error('Translation error for sentence:', error);
+                console.error('Translation error for chunk:', error);
                 translated.push(trimmed);
             }
         }
-    }
 
-    return translated.join('. ');
+        return translated.join(' ');
+
+    } catch (error) {
+        console.error('Translation error:', error);
+        throw new Error('فشلت عملية الترجمة. الرجاء المحاولة مرة أخرى.');
+    }
 }
