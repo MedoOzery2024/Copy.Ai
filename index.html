@@ -3,69 +3,80 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Copy.Ai - تحويل، استخراج وتلخيص</title>
-  <link rel="stylesheet" href="style.css">
-  <!-- CDN Libraries -->
-  <!-- Tesseract (OCR) -->
+  <title>Copy.Ai — تحويل، استخراج وتلخيص</title>
+  <link rel="stylesheet" href="style.css" />
+  <!-- مكتبات عبر CDN -->
   <script src="https://cdn.jsdelivr.net/npm/tesseract.js@4.0.2/dist/tesseract.min.js"></script>
-  <!-- pdf.js (لتحويل صفحات PDF إلى canvas) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.14.305/pdf.min.js"></script>
-  <!-- jsPDF (تحويل صور إلى PDF سريع) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-  <!-- pdf-lib (إعادة بناء / ضغط PDF) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf-lib/1.17.1/pdf-lib.min.js"></script>
-  <!-- docx (إنشاء ملفات .docx) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/docx/7.2.0/docx.umd.js"></script>
-  <!-- SheetJS XLSX (إنشاء Excel) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <!-- PptxGenJS (إنشاء PowerPoint) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pptxgenjs/3.8.0/pptxgen.bundle.js"></script>
 </head>
 <body>
-  <header>
-    <div class="logo">🧠 <span>Copy.Ai</span></div>
-    <div class="header-right">
+  <!-- شاشة الترحيب -->
+  <div id="splash-screen">
+    <div class="splash-content">
+      <div class="splash-logo">🧠</div>
+      <h1>Copy.Ai</h1>
+      <p>ابتكار من المبرمج: <strong>محمود محمد محمود أبو الفتوح أحمد العزيري</strong></p>
+    </div>
+  </div>
+
+  <!-- صوت ترحيبي قصير (اختياري، يتم التشغيل إن سمح المتصفح) -->
+  <audio id="splash-audio" preload="auto">
+    <source src="data:audio/mp3;base64,//uQxAAAAAAAAAAAAAAAAAAAA..." type="audio/mpeg">
+    <!-- ملاحظة: استبدل الـ base64 بصوت قصير فعلًا إن رغبت؛ هذا مثال placeholder -->
+  </audio>
+
+  <!-- رأس الصفحة -->
+  <header class="site-header">
+    <div class="left">
+      <div class="logo">🧠 <span>Copy.Ai</span></div>
+      <div class="subtitle">أدوات استخراج، تلخيص، وتحويل الملفات — كلّها تعمل على المتصفح</div>
+    </div>
+    <div class="right">
       <div class="author">Developed by: <strong>محمود محمد محمود أبو الفتوح أحمد العزيري</strong></div>
-      <button id="theme-toggle">🌙</button>
+      <button id="theme-toggle" class="btn">🌙</button>
     </div>
   </header>
 
-  <main id="home">
-    <h1>مرحبًا بك في <span>Copy.Ai</span></h1>
-    <p class="lead">أدوات استخراج، تلخيص، ترجمة، تحويل وضغط الملفات — كلّه يعمل داخل المتصفح.</p>
+  <!-- الصفحة الرئيسية -->
+  <main id="home" class="page active">
+    <section class="hero">
+      <h1>مرحبًا بك في <span>Copy.Ai</span></h1>
+      <p class="lead">لوحة أدوات احترافية لمعالجة الصور، ملفات PDF، والنصوص — السرعة والخصوصية في متصفحك.</p>
+    </section>
 
-    <div class="sections">
-      <div class="card" onclick="openSection('section-extract')">📄 استخراج النص من الصور و PDF</div>
-      <div class="card" onclick="openSection('section-summary')">🧾 تلخيص النصوص</div>
-      <div class="card" onclick="openSection('section-translate')">🌍 ترجمة (عرض النص المستخرج)</div>
-      <div class="card" onclick="openSection('section-img2pdf')">🖼️ تحويل الصور إلى PDF</div>
-      <div class="card" onclick="openSection('section-resizepdf')">📏 ضغط/تغيير حجم PDF</div>
-      <div class="card" onclick="openSection('section-converttxt')">📂 تحويل النص إلى Word/Excel/PPT/TXT</div>
-      <div class="card" onclick="openSection('section-resizeimg')">🎨 تغيير حجم ونوع الصور</div>
-    </div>
+    <section class="cards">
+      <div class="card" data-section="section-extract">📄 استخراج النص من الصور وPDF</div>
+      <div class="card" data-section="section-summary">🧾 تلخيص النصوص</div>
+      <div class="card" data-section="section-translate">🌍 ترجمة (عرض النص المستخرج)</div>
+      <div class="card" data-section="section-img2pdf">🖼️ تحويل الصور إلى PDF</div>
+      <div class="card" data-section="section-resizepdf">📏 ضغط/تغيير حجم PDF</div>
+      <div class="card" data-section="section-converttxt">📂 تحويل النص إلى Word/Excel/PPT/TXT</div>
+      <div class="card" data-section="section-resizeimg">🎨 تغيير حجم ونوع الصور</div>
+      <div class="card" data-section="section-tts">🔊 تحويل النص إلى كلام</div>
+    </section>
   </main>
 
-  <!-- ========== قسم: استخراج النص (OCR لكلٍ من الصور و PDF) ========== -->
+  <!-- قسم: استخراج النص (OCR) -->
   <section id="section-extract" class="panel">
     <h2>📄 استخراج النص من الصور وملفات PDF</h2>
-    <p>ارفع صورة أو ملف PDF. سنقوم بتحويل صفحات PDF لصور ثم استخراج النص عن طريق Tesseract.</p>
-
-    <label class="field">اختر ملف (صورة أو PDF)</label>
-    <input type="file" id="extract-file" accept="image/*,.pdf" />
-
+    <p>اختر صورة أو ملف PDF. يدعم استخراج نص عربي وإنجليزي.</p>
+    <input type="file" id="extract-file" accept="image/*,.pdf">
     <div class="controls">
-      <button id="btn-extract">🔍 بدء الاستخراج</button>
-      <button class="back" onclick="goHome()">⬅️ العودة للصفحة الرئيسية</button>
+      <button id="btn-extract" class="btn">🔍 بدء الاستخراج</button>
+      <button class="btn secondary" onclick="goHome()">⬅️ العودة للرئيسية</button>
     </div>
-
     <div class="status" id="extract-status"></div>
     <pre id="extract-output" class="output"></pre>
   </section>
 
-  <!-- ========== قسم: التلخيص ========== -->
+  <!-- قسم: تلخيص النص -->
   <section id="section-summary" class="panel">
     <h2>🧾 تلخيص النصوص</h2>
-    <p>يمكنك تلخيص النص المستخرج أو لصق نص جديد.</p>
     <textarea id="summary-input" placeholder="ألصق أو اكتب النص هنا..."></textarea>
     <div class="controls">
       <label>عدد جمل الملخص:
@@ -76,61 +87,57 @@
           <option value="5">5</option>
         </select>
       </label>
-      <button id="btn-summarize">✂️ تلخيص</button>
-      <button class="back" onclick="goHome()">⬅️ العودة للصفحة الرئيسية</button>
+      <button id="btn-summarize" class="btn">✂️ تلخيص</button>
+      <button class="btn secondary" onclick="goHome()">⬅️ العودة للرئيسية</button>
     </div>
     <pre id="summary-output" class="output"></pre>
   </section>
 
-  <!-- ========== قسم: الترجمة (عرض النص المستخرج - يمكن ربط خدمة ترجمة لاحقًا) ========== -->
+  <!-- قسم: ترجمة (عرض النص المستخرج) -->
   <section id="section-translate" class="panel">
-    <h2>🌍 ترجمة النصوص (عرض النص المعرّف)</h2>
-    <p>استخراج النص باستخدام OCR ثم يمكن ربطه بخدمة ترجمة خارجية. الآن نعرض النص المستخرج.</p>
-    <label>اختر ملف صورة / PDF</label>
-    <input type="file" id="translate-file" accept="image/*,.pdf" />
+    <h2>🌍 ترجمة (عرض النص المستخرج)</h2>
+    <p>نعرض النص المستخرج هنا ويمكنك ربطه بأي خدمة ترجمة لاحقًا.</p>
+    <input type="file" id="translate-file" accept="image/*,.pdf">
     <div class="controls">
       <select id="translate-target">
-        <option value="en">الإنجليزية</option>
-        <option value="fr">الفرنسية</option>
-        <option value="es">الإسبانية</option>
-        <option value="de">الألمانية</option>
+        <option value="en">إنجليزي</option>
+        <option value="fr">فرنسي</option>
+        <option value="es">إسباني</option>
+        <option value="de">ألماني</option>
       </select>
-      <button id="btn-translate">استخراج (وليس ترجمة فعليّة)</button>
-      <button class="back" onclick="goHome()">⬅️ العودة للصفحة الرئيسية</button>
+      <button id="btn-translate" class="btn">استخراج (عرض فقط)</button>
+      <button class="btn secondary" onclick="goHome()">⬅️ العودة للرئيسية</button>
     </div>
     <pre id="translate-output" class="output"></pre>
   </section>
 
-  <!-- ========== قسم: صور → PDF ========== -->
+  <!-- قسم: صور → PDF -->
   <section id="section-img2pdf" class="panel">
-    <h2>🖼️ تحويل صور متعددة إلى ملف PDF</h2>
-    <label>اختر صورًا (يمكن اختيار أكثر من صورة)</label>
-    <input type="file" id="img2pdf-input" accept="image/*" multiple />
+    <h2>🖼️ تحويل صور متعددة إلى PDF</h2>
+    <input type="file" id="img2pdf-input" accept="image/*" multiple>
     <div class="controls">
-      <button id="btn-img2pdf">🔁 تحويل إلى PDF</button>
-      <a id="img2pdf-download" style="display:none;"></a>
-      <button class="back" onclick="goHome()">⬅️ العودة للصفحة الرئيسية</button>
+      <button id="btn-img2pdf" class="btn">🔁 تحويل إلى PDF</button>
+      <a id="img2pdf-download" class="btn" style="display:none;"></a>
+      <button class="btn secondary" onclick="goHome()">⬅️ العودة للرئيسية</button>
     </div>
-    <div class="status" id="img2pdf-status"></div>
+    <div id="img2pdf-status" class="status"></div>
   </section>
 
-  <!-- ========== قسم: ضغط/تغيير حجم PDF (تقريبي) ========== -->
+  <!-- قسم: ضغط / إعادة بناء PDF -->
   <section id="section-resizepdf" class="panel">
     <h2>📏 ضغط / تغيير حجم PDF (تقريبي)</h2>
-    <p>نحو ضغط الصور داخل PDF وإعادة بناء PDF مضغوط. يعتمد على مدى كون PDF عبارة عن صور.</p>
-    <label>اختر ملف PDF</label>
-    <input type="file" id="resizepdf-input" accept=".pdf" />
-    <label>جودة الصور بعد الضغط (0.1 - 1.0)</label>
-    <input type="number" id="resizepdf-quality" step="0.1" min="0.1" max="1" value="0.6" />
+    <input type="file" id="resizepdf-input" accept=".pdf">
+    <label>جودة الصور (0.1 - 1.0)</label>
+    <input type="number" id="resizepdf-quality" min="0.1" max="1" step="0.1" value="0.6">
     <div class="controls">
-      <button id="btn-resizepdf">ضغط وإعادة إنشاء PDF</button>
-      <a id="resizepdf-download" style="display:none;"></a>
-      <button class="back" onclick="goHome()">⬅️ العودة للصفحة الرئيسية</button>
+      <button id="btn-resizepdf" class="btn">🔧 ضغط وإعادة إنشاء PDF</button>
+      <a id="resizepdf-download" class="btn" style="display:none;"></a>
+      <button class="btn secondary" onclick="goHome()">⬅️ العودة للرئيسية</button>
     </div>
-    <div class="status" id="resizepdf-status"></div>
+    <div id="resizepdf-status" class="status"></div>
   </section>
 
-  <!-- ========== قسم: تحويل النص إلى ملفات Office و TXT ========== -->
+  <!-- قسم: تحويل النص إلى ملفات -->
   <section id="section-converttxt" class="panel">
     <h2>📂 تحويل النص إلى Word / Excel / PowerPoint / Text</h2>
     <textarea id="convert-input" placeholder="أدخل النص أو الصق الملخص هنا..."></textarea>
@@ -141,20 +148,19 @@
         <option value="xlsx">Excel (.xlsx)</option>
         <option value="pptx">PowerPoint (.pptx)</option>
       </select>
-      <button id="btn-convertfile">⬇️ تحويل وتحميل</button>
-      <button class="back" onclick="goHome()">⬅️ العودة للصفحة الرئيسية</button>
+      <button id="btn-convertfile" class="btn">⬇️ تحويل وتحميل</button>
+      <button class="btn secondary" onclick="goHome()">⬅️ العودة للرئيسية</button>
     </div>
-    <div class="status" id="convert-status"></div>
+    <div id="convert-status" class="status"></div>
   </section>
 
-  <!-- ========== قسم: تغيير حجم ونوع الصورة ========== -->
+  <!-- قسم: تغيير حجم ونوع الصور -->
   <section id="section-resizeimg" class="panel">
     <h2>🎨 تغيير حجم الصور وتغيير الصيغة</h2>
-    <label>اختر صورة</label>
-    <input type="file" id="resizeimg-input" accept="image/*" />
+    <input type="file" id="resizeimg-input" accept="image/*">
     <div class="resize-fields">
-      <input type="number" id="resizeimg-width" placeholder="العرض (px)" />
-      <input type="number" id="resizeimg-height" placeholder="الارتفاع (px)" />
+      <input type="number" id="resizeimg-width" placeholder="العرض (px)">
+      <input type="number" id="resizeimg-height" placeholder="الارتفاع (px)">
       <select id="resizeimg-format">
         <option value="jpeg">JPEG</option>
         <option value="png">PNG</option>
@@ -162,16 +168,26 @@
       </select>
     </div>
     <div class="controls">
-      <button id="btn-resizeimg">تطبيق وتحميل</button>
-      <a id="resizeimg-download" style="display:none;"></a>
-      <button class="back" onclick="goHome()">⬅️ العودة للصفحة الرئيسية</button>
+      <button id="btn-resizeimg" class="btn">تطبيق وتحميل</button>
+      <a id="resizeimg-download" class="btn" style="display:none;"></a>
+      <button class="btn secondary" onclick="goHome()">⬅️ العودة للرئيسية</button>
     </div>
     <canvas id="resizeimg-canvas" style="display:none;"></canvas>
-    <div class="status" id="resizeimg-status"></div>
+    <div id="resizeimg-status" class="status"></div>
+  </section>
+
+  <!-- قسم: تحويل النص إلى كلام -->
+  <section id="section-tts" class="panel">
+    <h2>🔊 تحويل النص إلى كلام (TTS)</h2>
+    <textarea id="tts-input" placeholder="أدخل النص الذي تريد سماعه..."></textarea>
+    <div class="controls">
+      <button id="btn-tts" class="btn">▶️ تشغيل الصوت</button>
+      <button class="btn secondary" onclick="goHome()">⬅️ العودة للرئيسية</button>
+    </div>
   </section>
 
   <footer>
-    <p>© 2025 Copy.Ai — Developed by: <strong>محمود محمد محمود أبو الفتوح أحمد العزيري</strong></p>
+    <p>© 2025 Copy.Ai — Developed by <strong>محمود محمد محمود أبو الفتوح أحمد العزيري</strong></p>
   </footer>
 
   <script src="script.js"></script>
